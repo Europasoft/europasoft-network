@@ -29,13 +29,7 @@ protected:
         if (!connected || !Sockets::sendData(socket0, data)) { return false; }
         if (sendAndShutdown) { Sockets::shutdownConnection(socket0, 1); } // shutdown outgoing only
     }
-    // record incoming TCP stream data
-    bool receiveStream(char& outBuffer)
-    {
-        auto r = Sockets::receiveData(socket0, outBuffer, receiveBufferSize);
-        if (r.e == Sockets::RecStatE::Error) { return false; }
-
-    }
+    
 
     
 
