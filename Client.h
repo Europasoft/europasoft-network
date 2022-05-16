@@ -10,7 +10,6 @@ public:
     Client(const size_t& bufferSize = 512) { Sockets::init(); }
     ~Client() { Sockets::cleanup(); }
 
-
 protected:
     // resolve hostname and establish TCP connection
     bool connectStream(const std::string& host = "127.0.0.1")
@@ -18,7 +17,7 @@ protected:
         addrinfo* hostAddr = nullptr;
         if (!Sockets::resolveHostname(host, hostAddr)) { return false; }
         SOCKET stream_socket = 0;
-        return connected = Sockets::connectSocket(hostAddr, stream_socket);
+        return Sockets::connectSocket(hostAddr, stream_socket);
         Lock lock{};
         msocket.set(stream_socket);
         freeaddrinfo(hostAddr);

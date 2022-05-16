@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="Networking.cpp" />
     <ClCompile Include="Sockets.cpp" />
+    <ClCompile Include="SocketThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h" />

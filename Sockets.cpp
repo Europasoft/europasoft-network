@@ -43,8 +43,8 @@ namespace Sockets
         else {  size = r; e = RecStatE::Success; }
     }
 
-    RecStat receiveData(SOCKET& s, char& outBuffer, size_t bufSize)
-    { return RecStat(recv(s, &outBuffer, bufSize, 0)); }
+    RecStat receiveData(SOCKET& s, char* outBuffer, size_t bufSize)
+    { return RecStat(recv(s, outBuffer, bufSize, 0)); }
 
     RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
                     sockaddr& srcAddrOut, size_t& srcAddrLenOut)

@@ -31,6 +31,8 @@
 
 namespace Sockets
 {
+	using size_t = std::size_t;
+
 	bool init();
 	bool cleanup();
 
@@ -40,19 +42,23 @@ namespace Sockets
 	// attempts to open a client socket and connect, remember to close the socket
 	bool connectSocket(struct addrinfo*& addr, SOCKET& socketOut);
 
-	template <typename T>
+	
 	// sends data over a socket
+	bool sendData(SOCKET& s, char* data, size_t dataSize) 
+	{ return send(s, data, dataSize, 0) != SOCKET_ERROR ; }
+	// overload 1
+	template <typename T>
 	bool sendData(SOCKET& s, const T& data) 
 	{ return send(s, (char*)&data, (size_t)sizeof(T), 0) != SOCKET_ERROR; }
-	// overload
-	bool sendData(SOCKET& s, const char* data)
-	{ return send(s, data, strlen(data), 0) != SOCKET_ERROR; }
+	// overload 2
+	bool sendData(SOCKET& s, const char* dataStr)
+	{ return send(s, dataStr, strlen(dataStr), 0) != SOCKET_ERROR; }
 
 	enum class RecStatE { Success, ConnectionClosed, Error };
-	struct RecStat { RecStatE e; size_t size = 0; RecStat(const int64_t& r); };
+	struct RecStat { RecStatE e; size_t size = 0; RecStat(const int64_t& r); RecStat() = default; };
 
 	// receive (TCP)
-	RecStat receiveData(SOCKET& s, char& outBuffer, size_t bufSize);
+	RecStat receiveData(SOCKET& s, char* outBuffer, size_t bufSize);
 
 	// connectionless receive (UDP)
 	RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
