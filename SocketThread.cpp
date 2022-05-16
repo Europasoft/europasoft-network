@@ -1,61 +1,105 @@
 #include "SocketThread.h"
-#include <stdexcept>
+#include <cassert>
 
-SocketStreamThread::SocketStreamThread(const size_t& sendBufferSize_, const  size_t& receiveBufferSize_)
+SocketStreamThread::SocketStreamThread(const size_t& sendBufferSize_, const size_t& receiveBufferSize_, 
+                    const size_t sndMax, const size_t& recMax) : sndMaxSize{sndMax}, recMaxSize{recMax}
 {
-    mxm.sndBufferSize = sendBufferSize_;
-    mxm.recBufferSize = receiveBufferSize_;
-    mxm.sndBuffer = new char[mxm.sndBufferSize];
-    mxm.recBuffer = new char[mxm.recBufferSize];
+    reallocSendBuffer(sendBufferSize_);
+    reallocReceiveBuffer(receiveBufferSize_);
 }
 SocketStreamThread::~SocketStreamThread()
 { 
+    terminateThread();
     delete[] mxm.sndBuffer; 
-    delete[] mxm.recBuffer; 
+    delete[] mxm.recBuffer;
+}
+
+void SocketStreamThread::bufMemRealloc(char*& bptr, const size_t& newSize)
+{
+    assert(newSize > 0);
+    SocketStreamThread::MutexMembers* mxm;
+    auto lock = getMxm(mxm);
+    if (bptr) { delete[] bptr; }
+    bptr = new char[newSize];
+}
+void SocketStreamThread::reallocSendBuffer(const size_t& newSize) 
+{ 
+    bufMemRealloc(mxm.sndBuffer, newSize); 
+    mxm.sndBufferSize = newSize; 
+}
+void SocketStreamThread::reallocReceiveBuffer(const size_t& newSize)
+{
+    bufMemRealloc(mxm.recBuffer, newSize);
+    mxm.recBufferSize = newSize;
 }
 
 void SocketStreamThread::start(Sockets::MutexSocket* s)
 {
-    if (!s) { throw std::runtime_error("cannot start socket op thread, null socket handle pointer"); }
+    assert(s != nullptr && "socket stream thread start requires valid pointer to mutex-protected socket");
     mxm.socket = s;
     thread = std::thread([this] { this->threadMain(this); }); // create thread
 }
 
 void SocketStreamThread::threadMain(SocketStreamThread* p)
 {
+    threadRunning = true;
     bool terminate = false;
     while (!terminate)
     {
-        SocketStreamThread::MutexMembers* mxm;
-        auto lock = p->acquire(mxm); // lock mutex protecting mxm structure
-        Sockets::RecStat opResult;
+        SocketStreamThread::MutexMembers* mxm_p;
+        auto lock = p->getMxm(mxm_p); // lock mutex protecting mxm structure
+        auto& mxm = *mxm_p;
+
         // send TCP stream data
-        if (!mxm->disableSend && !mxm->sndBufferEmpty) 
+        if (mxm.sndDataSize > 0)
         {
-            Sockets::MutexSocket::Lock socketLock;
-            SOCKET s = mxm->socket->get(socketLock); // lock socket mutex, released at end of block
-            opResult = Sockets::sendData(s, mxm->sndBuffer, mxm->sndBufferSize);
+            Sockets::MutexSocket::Lock sLock;
+            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
+            if (Sockets::sendData(s, mxm.sndBuffer, mxm.sndDataSize)) 
+            { mxm.sndDataSize = 0; } // indicate data sent
         }
+        assert(mxm.recDataSize == 0 && "previously received data still present, risk of information loss");
         // receive TCP stream data
-        if (!mxm->disableReceive)
         {
-            Sockets::MutexSocket::Lock socketLock;
-            SOCKET s = mxm->socket->get(socketLock); // lock socket mutex, released at end of block
-            opResult = Sockets::receiveData(s, mxm->recBuffer, mxm->recBufferSize);
+            Sockets::MutexSocket::Lock sLock;
+            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
+            if (Sockets::receiveData(s, mxm.recBuffer, mxm.recBufferSize).e == Sockets::RecStatE::ConnectionClosed) 
+            { mxm.terminateThread = true; } // remote peer closed the connection
         }
-        terminate = mxm->terminateThread;
+        terminate = mxm.terminateThread;
     }
+    threadRunning = false;
 }
 
-void SocketStreamThread::queueSend(const char& data, const size_t& size) 
+bool SocketStreamThread::queueSend(const char& data, const size_t& size, bool overwrite)
+{
+    assert(threadRunning);
+    SocketStreamThread::MutexMembers* mxm;
+    auto lock = getMxm(mxm);
+    if (size == 0 || (mxm->sndDataSize > 0 && !overwrite) || mxm->terminateThread) { return false; }
+    if (size > mxm->sndBufferSize) 
+    { 
+        if (size > sndMaxSize) { return; }
+        reallocSendBuffer(size); 
+    }
+    memcpy(mxm->sndBuffer, &data, size);
+    mxm->sndDataSize = size; // indicate size of data to be sent
+    return true;
+}
+
+bool SocketStreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
 {
     SocketStreamThread::MutexMembers* mxm;
-    auto lock = acquire(mxm); // lock mutex protecting mxm structure
-    if (size > mxm->sndBufferSize) { throw std::runtime_error("failed to queue data, send buffer too small"); }
-
+    if (!mutex.try_lock()) { return false; }
+    if (dstBufferSize < mxm->recDataSize || mxm->recDataSize == 0) { mutex.unlock(); return false; }
+    memcpy(&dstBuffer, mxm->recBuffer, mxm->recDataSize);
+    mxm->recDataSize = 0; // mark as empty ("was read")
+    mutex.unlock();
 }
 
-void SocketStreamThread::readReceive(const char& data, const size_t& size)
+void SocketStreamThread::terminateThread()
 {
-
+    SocketStreamThread::MutexMembers* mxm;
+    auto lock = getMxm(mxm);
+    mxm->terminateThread = true;
 }

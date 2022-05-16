@@ -9,44 +9,56 @@
 // TCP send/receive op thread class
 class SocketStreamThread
 {
-    using size_t = std::size_t;
 protected:
+    using size_t = std::size_t;
+
     std::mutex mutex;
     struct MutexMembers 
     {
         // always call acquire() to initialize a lock object before accessing these members
         bool terminateThread = false;
-        bool disableSend = false;
-        bool disableReceive = false;
         Sockets::MutexSocket* socket = nullptr;
         char* sndBuffer = nullptr;
-        size_t sndBufferSize = 128;
-        size_t sndDataSize = 0;
         char* recBuffer = nullptr;
-        size_t recBufferSize = 128;
+        // current buffer size, buffers may be partially filled
+        size_t sndBufferSize = 0;
+        size_t recBufferSize = 0;
+        // size of data currently in buffer, less or equal to buffer size 
+        size_t sndDataSize = 0;
         size_t recDataSize = 0;
     } mxm;
+    const size_t sndMaxSize;
+    const size_t recMaxSize;
+    
+    void bufMemRealloc(char*& bptr, const size_t& newSize);
+    void reallocSendBuffer(const size_t& newSize);
+    void reallocReceiveBuffer(const size_t& newSize);
+
+    // locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
+    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(struct MutexMembers* mxmOut)
+    {
+        return std::move(std::unique_lock<std::mutex>(mutex));
+        mxmOut = &mxm; // member resources acquired by calling thread
+    }
 
 public:
     std::thread thread{};
+    bool threadRunning = false;
 
-    SocketStreamThread(const size_t& sendBufferSize_, const  size_t& receiveBufferSize_);
+    SocketStreamThread(const size_t& sendBufferSize_ = 256, const size_t& receiveBufferSize_ = 256, 
+                        const size_t sndMax = 1024, const size_t& recMax = 1024);
     ~SocketStreamThread();
-
-    // locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
-    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& acquire(struct MutexMembers* mxmOut)
-    {
-        return std::move(std::unique_lock<std::mutex>(mutex));
-        mxmOut = &mxm;
-    }
 
     void start(Sockets::MutexSocket* s);
     virtual void threadMain(SocketStreamThread* p);
 
-    // copies data to the send buffer (threadsafe)
-    void queueSend(const char& data, const size_t& size);
-    // copies data from the receive buffer (threadsafe)
-    void readReceive(const char& data, const size_t& size);
+    // thread-safely copies data to the send buffer
+    bool queueSend(const char& data, const size_t& size, bool overwrite = false);
+    // thread-safely copies data from the receive buffer, then marks it as empty
+    bool getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize);
+    // thread safe control functions
+    void terminateThread();
+
 };
 
 

@@ -54,10 +54,10 @@ namespace Sockets
 	bool sendData(SOCKET& s, const char* dataStr)
 	{ return send(s, dataStr, strlen(dataStr), 0) != SOCKET_ERROR; }
 
-	enum class RecStatE { Success, ConnectionClosed, Error };
-	struct RecStat { RecStatE e; size_t size = 0; RecStat(const int64_t& r); RecStat() = default; };
+	enum class RecStatE { NoOp, Success, ConnectionClosed, Error };
+	struct RecStat { RecStatE e; size_t size = 0; RecStat(const int64_t& r); RecStat(); };
 
-	// receive (TCP)
+	// receive (TCP), this is a blocking call
 	RecStat receiveData(SOCKET& s, char* outBuffer, size_t bufSize);
 
 	// connectionless receive (UDP)
@@ -65,7 +65,7 @@ namespace Sockets
 						struct sockaddr& srcAddrOut, size_t& srcAddrLenOut);
 
 	// shuts a connection down, flag can be one of: 0 (SD_RECEIVE), 1 (SD_SEND), 2 (SD_BOTH)
-	bool shutdownConnection(SOCKET& s, int flag);
+	bool shutdownConnection(const SOCKET& s, int flag);
 
 	// completely closes a socket
 	bool closeSocket(SOCKET s);

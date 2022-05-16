@@ -36,21 +36,22 @@ namespace Sockets
         return false;
 	}
 
+    RecStat::RecStat() : e{ RecStatE::NoOp } {};
     RecStat::RecStat(const int64_t& r)
     {
-        if      (r < 0) { e = RecStatE::Error; }
-        else if (r == 0) { e = RecStatE::ConnectionClosed;}
+        if (r < 0) { e = RecStatE::Error; }
+        else if (r == 0) { e = RecStatE::ConnectionClosed; }
         else {  size = r; e = RecStatE::Success; }
     }
 
     RecStat receiveData(SOCKET& s, char* outBuffer, size_t bufSize)
-    { return RecStat(recv(s, outBuffer, bufSize, 0)); }
+    { return RecStat(recv(s, outBuffer, bufSize, MSG_WAITALL)); }
 
     RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
                     sockaddr& srcAddrOut, size_t& srcAddrLenOut)
     { return RecStat(recvfrom(s, &outBuffer, bufSize, 0, &srcAddrOut, (socklen_t*)&srcAddrLenOut)); }
 
-    bool shutdownConnection(SOCKET& s, int flag) 
+    bool shutdownConnection(const SOCKET& s, int flag) 
     { return shutdown(s, flag) != SOCKET_ERROR; }
 
     bool closeSocket(SOCKET s) 

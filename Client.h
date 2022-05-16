@@ -6,8 +6,11 @@ class Client
     using MutexSocket = Sockets::MutexSocket;
     using Lock = MutexSocket::Lock;
 
+    SocketStreamThread socketThread{};
+    MutexSocket clientSocket;
+    
 public:
-    Client(const size_t& bufferSize = 512) { Sockets::init(); }
+    Client() { Sockets::init(); }
     ~Client() { Sockets::cleanup(); }
 
 protected:
@@ -16,17 +19,21 @@ protected:
     {
         addrinfo* hostAddr = nullptr;
         if (!Sockets::resolveHostname(host, hostAddr)) { return false; }
-        SOCKET stream_socket = 0;
-        return Sockets::connectSocket(hostAddr, stream_socket);
+        SOCKET s = 0;
+        return Sockets::connectSocket(hostAddr, s);
         Lock lock{};
-        msocket.set(stream_socket);
+        clientSocket.set(s);
         freeaddrinfo(hostAddr);
+
+        socketThread.start(&clientSocket);
     }
+
     // send data to remote host over TCP stream
     bool sendStream(const char* data = "TEST DATA", bool sendAndShutdown = false)
     {
-        if (!connected || !Sockets::sendData(socket0, data)) { return false; }
-        if (sendAndShutdown) { Sockets::shutdownConnection(socket0, 1); } // shutdown outgoing only
+        if (!socketThread.queueSend(*data, strlen(data))) { return false; }
+        Lock lock;
+        if (sendAndShutdown) { Sockets::shutdownConnection(clientSocket.get(lock), 1); } // shutdown outgoing only
     }
     
 
