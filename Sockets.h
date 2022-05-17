@@ -36,8 +36,9 @@ namespace Sockets
 	bool init();
 	bool cleanup();
 
-	// resolves address from hostname, remember to use freeaddrinfo() on the result
-	bool resolveHostname(const std::string& hostname, struct addrinfo*& addrOut, const std::string& port = DEFAULT_PORT);
+	// resolves address from hostname, remember to use freeaddrinfo() on the result, empty hostname returns localhost
+	bool resolveHostname(const std::string& hostname, struct addrinfo*& addrOut, 
+						const std::string& port = DEFAULT_PORT, bool listenSocket = false);
 
 	// attempts to open a client socket and connect, remember to close the socket
 	bool connectSocket(struct addrinfo*& addr, SOCKET& socketOut);
@@ -46,15 +47,9 @@ namespace Sockets
 	bool setupStream(const std::string& hostname, SOCKET& socketOut);
 	
 	// sends data over a socket
-	bool sendData(SOCKET& s, char* data, size_t dataSize) 
-	{ return send(s, data, dataSize, 0) != SOCKET_ERROR ; }
-	// overload 1
-	template <typename T>
-	bool sendData(SOCKET& s, const T& data) 
-	{ return send(s, (char*)&data, (size_t)sizeof(T), 0) != SOCKET_ERROR; }
-	// overload 2
-	bool sendData(SOCKET& s, const char* dataStr)
-	{ return send(s, dataStr, strlen(dataStr), 0) != SOCKET_ERROR; }
+	bool sendData(SOCKET& s, char* data, const size_t& dataSize);
+
+	bool listenSocket(SOCKET& s, const std::string& port = DEFAULT_PORT);
 
 	enum class RecStatE { NoOp, Success, ConnectionClosed, Error };
 	struct RecStat { RecStatE e; size_t size = 0; RecStat(const int64_t& r); RecStat(); };

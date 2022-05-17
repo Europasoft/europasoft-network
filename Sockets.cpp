@@ -10,15 +10,18 @@ namespace Sockets
     bool cleanup() { return true; }
 #endif
 
-    bool resolveHostname(const std::string& hostname, addrinfo*& addrOut, const std::string& port)
+    bool resolveHostname(const std::string& hostname, addrinfo*& addrOut, 
+                        const std::string& port, bool listenSocket)
 	{
         addrinfo hints{};
         memset(&hints, 0, sizeof(hints));
         hints.ai_socktype = SOCK_STREAM; // STREAM, DGRAM, etc.
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_family = AF_UNSPEC; // IPv4 (AF_INIT), IPv6 (AF_INET6), etc.
+        if (listenSocket) { hints.ai_flags = AI_PASSIVE; }
 
-		return getaddrinfo(hostname.c_str(), port.c_str(), &hints, &addrOut) == 0;
+        const char* h = hostname.empty() ? NULL : hostname.c_str();
+		return getaddrinfo(h, port.c_str(), &hints, &addrOut) == 0;
 	}
 
 	bool connectSocket(addrinfo*& addr, SOCKET& socketOut)
@@ -45,6 +48,24 @@ namespace Sockets
         freeaddrinfo(hostAddr);
         socketOut = s;
         return r;
+    }
+
+    bool sendData(SOCKET& s, char* data, const size_t& dataSize)
+    {
+        return send(s, data, dataSize, 0) != SOCKET_ERROR;
+    }
+
+    bool listenSocket(SOCKET& s, const std::string& port)
+    {
+        addrinfo* p = nullptr;
+        if (!resolveHostname(std::string(), p, port, true)) { return false; }
+        SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        auto r_b = (bind(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
+        auto r_l = (listen(s, 1000) != SOCKET_ERROR);
+        freeaddrinfo(p);
+        if (s != INVALID_SOCKET) { return false; }
+        if (!r_b && !r_l) { close(s); return false; }
+
     }
 
     RecStat::RecStat() : e{ RecStatE::NoOp } {};

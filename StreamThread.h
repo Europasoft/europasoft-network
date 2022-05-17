@@ -34,7 +34,7 @@ protected:
     void reallocReceiveBuffer(const size_t& newSize);
 
     // locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
-    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(MXM* mxmOut)
+    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(MXM*& mxmOut)
     {
         return std::move(std::unique_lock<std::mutex>(mutex));
         mxmOut = &mxm; // member resources acquired by calling thread
@@ -59,7 +59,7 @@ public:
     // thread-safely copies data to the send buffer
     bool queueSend(const char& data, const size_t& size, bool overwrite = false);
     // thread-safely copies data from the receive buffer, then marks it as empty
-    bool getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize);
+    size_t getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize);
     void terminateThread();
 
 };

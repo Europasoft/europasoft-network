@@ -11,14 +11,24 @@ Client::~Client()
 	delete[] receiveBuffer;
 }
 
-void Client::connectStream(const std::string& hostname)
-{
-	streamThread.start(&streamSocket, hostname);
-}
+void Client::connectStream(const std::string& hostname) { streamThread.start(&streamSocket, hostname); }
 
 bool Client::sendStream(const char* data, bool finalSend)
 {
-	if (!streamThread.queueSend(*data, strlen(data))) { return false; }
+	const auto r = streamThread.queueSend(*data, strlen(data));
 	if (finalSend) { Lock lock; Sockets::shutdownConnection(streamSocket.get(lock), 1); } // shutdown outgoing only
+	return r;
+}
+
+char* Client::getReceiveBuffer(size_t& dataSizeOut, bool update) 
+{
+	if (!update) 
+	{
+		dataSizeOut = receiveBufferDataSize;
+		return receiveBuffer;
+	}
+	const auto datasize = streamThread.getReceiveBuffer(*receiveBuffer, streamThread.recMaxSize);
+	dataSizeOut = receiveBufferDataSize = datasize;
+	return receiveBuffer;
 }
 

@@ -79,8 +79,9 @@ void SocketStreamThread::threadMain(SocketStreamThread* p)
             if (Sockets::sendData(s, mxm.sndBuffer, mxm.sndDataSize)) 
             { mxm.sndDataSize = 0; } // indicate data sent
         }
-        assert(mxm.recDataSize == 0 && "previously received data still present, risk of information loss");
-        // receive TCP stream data (blocking until output buffer is full)
+
+        // receive TCP stream data (blocking until buffer is full)
+        if (mxm.recDataSize == 0)
         {
             Sockets::MutexSocket::Lock sLock;
             SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
@@ -111,15 +112,17 @@ bool SocketStreamThread::queueSend(const char& data, const size_t& size, bool ov
     return true;
 }
 
-bool SocketStreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
+size_t SocketStreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
 {
-    MXM* mxm = nullptr;
-    if (!mutex.try_lock()) { return false; }
-    if (dstBufferSize < mxm->recDataSize || mxm->recDataSize == 0) { mutex.unlock(); return false; }
-    memcpy(&dstBuffer, mxm->recBuffer, mxm->recDataSize);
-    mxm->recDataSize = 0; // mark as empty ("was read")
+    if (!mutex.try_lock()) { return 0; }
+    assert(dstBufferSize >= mxm.recDataSize && "destination buffer too small, data will be lost");
+    if (mxm.recDataSize == 0) { mutex.unlock(); return 0; }
+    auto sz = (dstBufferSize > mxm.recDataSize) ? mxm.recDataSize : dstBufferSize;
+    // copy as much as will fit
+    memcpy(&dstBuffer, mxm.recBuffer, sz);
+    mxm.recDataSize = 0; // mark as empty ("was read")
     mutex.unlock();
-    return true;
+    return sz;
 }
 
 void SocketStreamThread::terminateThread()
