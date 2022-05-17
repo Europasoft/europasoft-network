@@ -42,6 +42,8 @@ namespace Sockets
 	// attempts to open a client socket and connect, remember to close the socket
 	bool connectSocket(struct addrinfo*& addr, SOCKET& socketOut);
 
+	// handles both hostname resolution and socket creation, establishes client-server TCP connection
+	bool setupStream(const std::string& hostname, SOCKET& socketOut);
 	
 	// sends data over a socket
 	bool sendData(SOCKET& s, char* data, size_t dataSize) 

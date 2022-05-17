@@ -36,6 +36,17 @@ namespace Sockets
         return false;
 	}
 
+    bool setupStream(const std::string& hostname, SOCKET& socketOut) 
+    {
+        addrinfo* hostAddr = nullptr;
+        if (!resolveHostname(hostname, hostAddr)) { return false; }
+        SOCKET s = 0;
+        auto r = connectSocket(hostAddr, s);
+        freeaddrinfo(hostAddr);
+        socketOut = s;
+        return r;
+    }
+
     RecStat::RecStat() : e{ RecStatE::NoOp } {};
     RecStat::RecStat(const int64_t& r)
     {

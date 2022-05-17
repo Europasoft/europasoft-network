@@ -1,5 +1,5 @@
 #pragma once
-#include "SocketThread.h"
+#include "StreamThread.h"
 
 /* CLIENT EXECUTION PATH */
 // 1. Initialize, resolve host address/port (DNS query)
@@ -17,31 +17,18 @@ class Client
     SocketStreamThread streamThread{};
     // for async access to data from the actual receive buffer (which may be in-use by stream thread)
     char* receiveBuffer = nullptr;
+    size_t receiveBufferDataSize = 0;
 
 public:
     Client();
     ~Client();
 
-    // resolve hostname and establish TCP connection
-    bool connectStream(const std::string& host = "127.0.0.1")
-    {
-        addrinfo* hostAddr = nullptr;
-        if (!Sockets::resolveHostname(host, hostAddr)) { return false; }
-        SOCKET s = 0;
-        return Sockets::connectSocket(hostAddr, s);
-        Lock lock{};
-        streamSocket.set(s);
-        freeaddrinfo(hostAddr);
+    bool isConnected() const { return streamThread.threadRunning; }
 
-        streamThread.start(&streamSocket);
-    }
+    // establish TCP connection (starts the client stream thread)
+    void connectStream(const std::string& hostname = "127.0.0.1");
 
     // send data to remote host over TCP stream
-    bool sendStream(const char* data = "TEST DATA", bool finalSend = false)
-    {
-        if (!streamThread.queueSend(*data, strlen(data))) { return false; }
-        Lock lock;
-        if (finalSend) { Sockets::shutdownConnection(streamSocket.get(lock), 1); } // shutdown outgoing only
-    }
+    bool sendStream(const char* data = "TEST DATA", bool finalSend = false);
     
 };

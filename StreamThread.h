@@ -41,15 +41,18 @@ protected:
     }
 
 public:
-    std::thread thread{};
-    bool threadRunning = false;
     const size_t sndMaxSize;
     const size_t recMaxSize;
+    std::thread thread{};
+    bool threadRunning = false;
+    // if not empty, indicates that the stream thread is responsible for connecting and socket creation
+    std::string hostname = std::string();
 
     SocketStreamThread(const size_t& sendBufferSize_ = 256, const size_t& receiveBufferSize_ = 256, 
                         const size_t sndMax = 1024, const size_t& recMax = 1024);
     ~SocketStreamThread();
 
+    void start(Sockets::MutexSocket* s, const std::string& hostname_);
     void start(Sockets::MutexSocket* s);
     virtual void threadMain(SocketStreamThread* p);
 

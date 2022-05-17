@@ -143,13 +143,13 @@
     <ClCompile Include="Networking.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="Sockets.cpp" />
-    <ClCompile Include="SocketThread.cpp" />
+    <ClCompile Include="StreamThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Client.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="Sockets.h" />
-    <ClInclude Include="SocketThread.h" />
+    <ClInclude Include="StreamThread.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
