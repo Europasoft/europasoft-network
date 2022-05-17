@@ -27,15 +27,14 @@ protected:
         size_t sndDataSize = 0;
         size_t recDataSize = 0;
     } mxm;
-    const size_t sndMaxSize;
-    const size_t recMaxSize;
-    
+    using MXM = MutexMembers;
+
     void bufMemRealloc(char*& bptr, const size_t& newSize);
     void reallocSendBuffer(const size_t& newSize);
     void reallocReceiveBuffer(const size_t& newSize);
 
     // locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
-    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(struct MutexMembers* mxmOut)
+    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(MXM* mxmOut)
     {
         return std::move(std::unique_lock<std::mutex>(mutex));
         mxmOut = &mxm; // member resources acquired by calling thread
@@ -44,6 +43,8 @@ protected:
 public:
     std::thread thread{};
     bool threadRunning = false;
+    const size_t sndMaxSize;
+    const size_t recMaxSize;
 
     SocketStreamThread(const size_t& sendBufferSize_ = 256, const size_t& receiveBufferSize_ = 256, 
                         const size_t sndMax = 1024, const size_t& recMax = 1024);
@@ -56,7 +57,6 @@ public:
     bool queueSend(const char& data, const size_t& size, bool overwrite = false);
     // thread-safely copies data from the receive buffer, then marks it as empty
     bool getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize);
-    // thread safe control functions
     void terminateThread();
 
 };

@@ -1,19 +1,27 @@
 #pragma once
 #include "SocketThread.h"
 
+/* CLIENT EXECUTION PATH */
+// 1. Initialize, resolve host address/port (DNS query)
+// 2. Connect to host, start stream thread
+// 3. Send and receive through stream thread
+// 4. Keep sending as long as thread is running
+// 5. Terminate thread on connection closed
+
 class Client 
 {
     using MutexSocket = Sockets::MutexSocket;
     using Lock = MutexSocket::Lock;
 
-    SocketStreamThread socketThread{};
-    MutexSocket clientSocket;
-    
-public:
-    Client() { Sockets::init(); }
-    ~Client() { Sockets::cleanup(); }
+    MutexSocket streamSocket;
+    SocketStreamThread streamThread{};
+    // for async access to data from the actual receive buffer (which may be in-use by stream thread)
+    char* receiveBuffer = nullptr;
 
-protected:
+public:
+    Client();
+    ~Client();
+
     // resolve hostname and establish TCP connection
     bool connectStream(const std::string& host = "127.0.0.1")
     {
@@ -22,21 +30,18 @@ protected:
         SOCKET s = 0;
         return Sockets::connectSocket(hostAddr, s);
         Lock lock{};
-        clientSocket.set(s);
+        streamSocket.set(s);
         freeaddrinfo(hostAddr);
 
-        socketThread.start(&clientSocket);
+        streamThread.start(&streamSocket);
     }
 
     // send data to remote host over TCP stream
-    bool sendStream(const char* data = "TEST DATA", bool sendAndShutdown = false)
+    bool sendStream(const char* data = "TEST DATA", bool finalSend = false)
     {
-        if (!socketThread.queueSend(*data, strlen(data))) { return false; }
+        if (!streamThread.queueSend(*data, strlen(data))) { return false; }
         Lock lock;
-        if (sendAndShutdown) { Sockets::shutdownConnection(clientSocket.get(lock), 1); } // shutdown outgoing only
+        if (finalSend) { Sockets::shutdownConnection(streamSocket.get(lock), 1); } // shutdown outgoing only
     }
     
-
-    
-
 };

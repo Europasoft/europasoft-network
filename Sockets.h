@@ -82,6 +82,7 @@ namespace Sockets
 		MutexSocket() = default;
 		MutexSocket(const SOCKET& s_) : s{ s_ } {};
 		~MutexSocket() { closeSocket(s); }
+		MutexSocket(const MutexSocket&) = delete; // no copying
 		// ensures thread safety by locking the mutex (may be blocking)
 		_Acquires_lock_(lock) const SOCKET& get(Lock& lock)
 		{

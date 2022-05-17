@@ -139,7 +139,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="Networking.cpp" />
+    <ClCompile Include="Server.cpp" />
     <ClCompile Include="Sockets.cpp" />
     <ClCompile Include="SocketThread.cpp" />
   </ItemGroup>
