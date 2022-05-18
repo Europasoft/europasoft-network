@@ -59,13 +59,14 @@ namespace Sockets
     {
         addrinfo* p = nullptr;
         if (!resolveHostname(std::string(), p, port, true)) { return false; }
-        SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        auto r_b = (bind(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
-        auto r_l = (listen(s, 1000) != SOCKET_ERROR);
+        SOCKET ls = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        auto r_b = (bind(ls, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
+        auto r_l = (listen(ls, 1000) != SOCKET_ERROR);
         freeaddrinfo(p);
-        if (s != INVALID_SOCKET) { return false; }
+        if (ls != INVALID_SOCKET) { return false; }
         if (!r_b && !r_l) { close(s); return false; }
-
+        s = ls;
+        return true;
     }
 
     RecStat::RecStat() : e{ RecStatE::NoOp } {};

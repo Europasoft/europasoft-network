@@ -18,6 +18,21 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\NetAgent\Client.cpp" />
+    <ClCompile Include="Source\NetAgent\Server.cpp" />
+    <ClCompile Include="Source\Networking.cpp" />
+    <ClCompile Include="Source\Sockets\ListenThread.cpp" />
+    <ClCompile Include="Source\Sockets\Sockets.cpp" />
+    <ClCompile Include="Source\Sockets\StreamThread.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\NetAgent\Client.h" />
+    <ClInclude Include="Source\NetAgent\Server.h" />
+    <ClInclude Include="Source\Sockets\ListenThread.h" />
+    <ClInclude Include="Source\Sockets\Sockets.h" />
+    <ClInclude Include="Source\Sockets\StreamThread.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -138,19 +153,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="Client.cpp" />
-    <ClCompile Include="Networking.cpp" />
-    <ClCompile Include="Server.cpp" />
-    <ClCompile Include="Sockets.cpp" />
-    <ClCompile Include="StreamThread.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Client.h" />
-    <ClInclude Include="Server.h" />
-    <ClInclude Include="Sockets.h" />
-    <ClInclude Include="StreamThread.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

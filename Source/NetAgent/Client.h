@@ -14,7 +14,7 @@ class Client
     using Lock = MutexSocket::Lock;
 
     MutexSocket streamSocket;
-    SocketStreamThread streamThread{};
+    StreamThread streamThread{};
     // for async access to data from the actual receive buffer (which may be in-use by stream thread)
     char* receiveBuffer = nullptr;
     size_t receiveBufferDataSize = 0;

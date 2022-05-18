@@ -1,20 +1,20 @@
 #include "StreamThread.h"
 #include <cassert>
 
-SocketStreamThread::SocketStreamThread(const size_t& sendBufferSize_, const size_t& receiveBufferSize_, 
+StreamThread::StreamThread(const size_t& sendBufferSize_, const size_t& receiveBufferSize_, 
                     const size_t sndMax, const size_t& recMax) : sndMaxSize{sndMax}, recMaxSize{recMax}
 {
     reallocSendBuffer(sendBufferSize_);
     reallocReceiveBuffer(receiveBufferSize_);
 }
-SocketStreamThread::~SocketStreamThread()
+StreamThread::~StreamThread()
 { 
     terminateThread();
     delete[] mxm.sndBuffer;
     delete[] mxm.recBuffer;
 }
 
-void SocketStreamThread::bufMemRealloc(char*& bptr, const size_t& newSize)
+void StreamThread::bufMemRealloc(char*& bptr, const size_t& newSize)
 {
     assert(newSize > 0);
     MXM* mxm = nullptr;
@@ -22,23 +22,23 @@ void SocketStreamThread::bufMemRealloc(char*& bptr, const size_t& newSize)
     if (bptr) { delete[] bptr; }
     bptr = new char[newSize];
 }
-void SocketStreamThread::reallocSendBuffer(const size_t& newSize) 
+void StreamThread::reallocSendBuffer(const size_t& newSize) 
 { 
     bufMemRealloc(mxm.sndBuffer, newSize); 
     mxm.sndBufferSize = newSize; 
 }
-void SocketStreamThread::reallocReceiveBuffer(const size_t& newSize)
+void StreamThread::reallocReceiveBuffer(const size_t& newSize)
 {
     bufMemRealloc(mxm.recBuffer, newSize);
     mxm.recBufferSize = newSize;
 }
 
-void SocketStreamThread::start(Sockets::MutexSocket* s, const std::string& hostname_)
+void StreamThread::start(Sockets::MutexSocket* s, const std::string& hostname_)
 {
     hostname = hostname_; // stream thread will handle connecting, since hostname was specified
     start(s);
 }
-void SocketStreamThread::start(Sockets::MutexSocket* s)
+void StreamThread::start(Sockets::MutexSocket* s)
 {
     // this overload assumes socket is already connected
     assert(s != nullptr && "stream thread needs pointer to mutex-protected socket");
@@ -46,7 +46,7 @@ void SocketStreamThread::start(Sockets::MutexSocket* s)
     thread = std::thread([this] { this->threadMain(this); }); // create thread
 }
 
-void SocketStreamThread::threadMain(SocketStreamThread* p)
+void StreamThread::threadMain(StreamThread* p)
 {
     threadRunning = true;
     bool terminate = false;
@@ -95,7 +95,7 @@ void SocketStreamThread::threadMain(SocketStreamThread* p)
     threadRunning = false;
 }
 
-bool SocketStreamThread::queueSend(const char& data, const size_t& size, bool overwrite)
+bool StreamThread::queueSend(const char& data, const size_t& size, bool overwrite)
 {
     assert(threadRunning);
     MXM* mxm = nullptr;
@@ -112,7 +112,7 @@ bool SocketStreamThread::queueSend(const char& data, const size_t& size, bool ov
     return true;
 }
 
-size_t SocketStreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
+size_t StreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
 {
     if (!mutex.try_lock()) { return 0; }
     assert(dstBufferSize >= mxm.recDataSize && "destination buffer too small, data will be lost");
@@ -125,7 +125,7 @@ size_t SocketStreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBu
     return sz;
 }
 
-void SocketStreamThread::terminateThread()
+void StreamThread::terminateThread()
 {
     MXM* mxm = nullptr;
     auto lock = getMxm(mxm);

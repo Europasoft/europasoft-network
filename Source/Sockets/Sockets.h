@@ -70,16 +70,25 @@ namespace Sockets
 	// threadsafe socket handle, auto-closing
 	class MutexSocket 
 	{
-		SOCKET s = 0;
+		SOCKET s;
 		bool initialized = false;
 		std::mutex m;
 		
 	public:
 		using Lock = std::unique_lock<std::mutex>; // syntactic sugar (MutexSocket::Lock)
-		MutexSocket() = default;
+		MutexSocket() : s{ INVALID_SOCKET } {};
 		MutexSocket(const SOCKET& s_) : s{ s_ } {};
 		~MutexSocket() { closeSocket(s); }
-		MutexSocket(const MutexSocket&) = delete; // no copying
+		// no copying, move only
+		MutexSocket(const MutexSocket&) = delete; 
+		MutexSocket(MutexSocket&& pr) noexcept
+		{ 
+			Lock l;
+			s = pr.get(l); // move socket handle without closing socket
+			initialized = true; 
+			pr.s = INVALID_SOCKET;
+			pr.initialized = false;
+		}
 		// ensures thread safety by locking the mutex (may be blocking)
 		_Acquires_lock_(lock) const SOCKET& get(Lock& lock)
 		{

@@ -7,7 +7,7 @@
 #endif
 
 // TCP send/receive op thread class
-class SocketStreamThread
+class StreamThread
 {
 protected:
     using size_t = std::size_t;
@@ -48,13 +48,13 @@ public:
     // if not empty, indicates that the stream thread is responsible for connecting and socket creation
     std::string hostname = std::string();
 
-    SocketStreamThread(const size_t& sendBufferSize_ = 256, const size_t& receiveBufferSize_ = 256, 
+    StreamThread(const size_t& sendBufferSize_ = 256, const size_t& receiveBufferSize_ = 256, 
                         const size_t sndMax = 1024, const size_t& recMax = 1024);
-    ~SocketStreamThread();
+    ~StreamThread();
 
     void start(Sockets::MutexSocket* s, const std::string& hostname_);
     void start(Sockets::MutexSocket* s);
-    virtual void threadMain(SocketStreamThread* p);
+    virtual void threadMain(StreamThread* p);
 
     // thread-safely copies data to the send buffer
     bool queueSend(const char& data, const size_t& size, bool overwrite = false);
