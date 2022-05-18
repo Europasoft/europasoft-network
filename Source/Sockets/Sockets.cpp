@@ -63,8 +63,7 @@ namespace Sockets
         auto r_b = (bind(ls, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
         auto r_l = (listen(ls, 1000) != SOCKET_ERROR);
         freeaddrinfo(p);
-        if (ls != INVALID_SOCKET) { return false; }
-        if (!r_b && !r_l) { close(s); return false; }
+        if (!r_b || !r_l || ls == INVALID_SOCKET) { close(ls); return false; }
         s = ls;
         return true;
     }

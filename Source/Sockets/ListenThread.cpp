@@ -1,88 +1,42 @@
 #include "ListenThread.h"
 #include <cassert>
 
-void ListenThread::bufMemRealloc(char*& bptr, const size_t& newSize)
+void ListenThread::start(const std::string& port)
 {
-    assert(newSize > 0);
-    MXM* mxm = nullptr;
-    auto lock = getMxm(mxm);
-    if (bptr) { delete[] bptr; }
-    bptr = new char[newSize];
-}
-void ListenThread::reallocSendBuffer(const size_t& newSize)
-{
-    bufMemRealloc(mxm.sndBuffer, newSize);
-    mxm.sndBufferSize = newSize;
-}
-void ListenThread::reallocReceiveBuffer(const size_t& newSize)
-{
-    bufMemRealloc(mxm.recBuffer, newSize);
-    mxm.recBufferSize = newSize;
+    mxm.listenPort = port;
+    assert(!mxm.listenPort.empty() && "valid port number must be provided for listen socket");
+    thread = std::thread([this] { this->threadMain(); }); // create thread
 }
 
-void ListenThread::start(Sockets::MutexSocket* s, const std::string& hostname_)
-{
-    hostname = hostname_; // stream thread will handle connecting, since hostname was specified
-    start(s);
-}
-void ListenThread::start(Sockets::MutexSocket* s)
-{
-    // this overload assumes socket is already connected
-    assert(s != nullptr && "stream thread needs pointer to mutex-protected socket");
-    mxm.socket = s;
-    thread = std::thread([this] { this->threadMain(this); }); // create thread
-}
-
-void ListenThread::threadMain(ListenThread* p)
+void ListenThread::threadMain()
 {
     threadRunning = true;
     bool terminate = false;
-    // resolve hostname and connect
-    if (!hostname.empty())
-    {
-        SOCKET s;
-        auto r = Sockets::setupStream(hostname, s);
-        if (!r) { terminate = true; } // failure to connect
-        else
-        {
-            MXM* mxm = nullptr;
-            auto lock = p->getMxm(mxm);
-            mxm->socket->set(s); // set function is threadsafe
-        }
-    }
 
-    // thread main loop
+    SOCKET listenSocket = INVALID_SOCKET;
+    std::string lp;
+    {
+        // thread-safely get the listen port
+        MXM* mxmptr = nullptr;
+        auto lock = getMxm(mxmptr);
+        lp = mxmptr->listenPort;
+    }
+    // create listen socket
+    if (!Sockets::listenSocket(listenSocket, lp)) { terminate = true; }
+
+    // listener loop
     while (!terminate)
     {
         MXM* mxmptr = nullptr;
-        auto lock = p->getMxm(mxmptr); // lock mutex protecting mxm structure
+        auto lock = getMxm(mxmptr); // lock mutex protecting mxm structure
         MXM& mxm = *mxmptr;
-
-        // send TCP stream data
-        if (mxm.sndDataSize > 0)
-        {
-            Sockets::MutexSocket::Lock sLock;
-            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
-            if (Sockets::sendData(s, mxm.sndBuffer, mxm.sndDataSize))
-            {
-                mxm.sndDataSize = 0;
-            } // indicate data sent
-        }
-
-        // receive TCP stream data (blocking until buffer is full)
-        if (mxm.recDataSize == 0)
-        {
-            Sockets::MutexSocket::Lock sLock;
-            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
-            Sockets::RecStat r = Sockets::receiveData(s, mxm.recBuffer, mxm.recBufferSize);
-            mxm.recDataSize = r.size;
-            if (r.e == Sockets::RecStatE::ConnectionClosed)
-            {
-                mxm.terminateThread = true;
-            } // remote peer closed the connection
-        }
-        terminate = mxm.terminateThread;
+        // prevent overwriting connection socket before it has been saved somewhere else!
+        if (mxm.connectedSocket != INVALID_SOCKET)  
+        SOCKET cs = accept(listenSocket, NULL, NULL); // try to accept any connection
+        if (cs == INVALID_SOCKET) { continue; }
+        mxmptr->connectedSocket = cs;
     }
+    if (listenSocket != INVALID_SOCKET) { close(listenSocket); }
     threadRunning = false;
 }
 
@@ -92,9 +46,8 @@ SOCKET ListenThread::getConnectionSocket()
     {
         MXM* mxm = nullptr;
         auto lock = getMxm(mxm);
-        Sockets::MutexSocket::Lock socketLock;
-        socketOut = mxm->socket.get(socketLock); // get
-        mxm->socket.set(INVALID_SOCKET, true); // mark as "read"
+        socketOut = mxm->connectedSocket; // get
+        mxm->connectedSocket = INVALID_SOCKET; // mark as "read"
     }
     return socketOut;
 }

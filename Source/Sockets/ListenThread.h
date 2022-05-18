@@ -10,14 +10,13 @@
 class ListenThread
 {
 protected:
-    using size_t = std::size_t;
-
     std::mutex mutex;
     struct MutexMembers
     {
         // always call acquire() to initialize a lock object before accessing these members
         bool terminateThread = false;
-        Sockets::MutexSocket socket{ INVALID_SOCKET };
+        std::string listenPort{};
+        SOCKET connectedSocket = INVALID_SOCKET;
     } mxm;
     using MXM = MutexMembers;
 
@@ -28,6 +27,8 @@ protected:
         mxmOut = &mxm; // member resources acquired by calling thread
     }
 
+
+
 public:
     std::thread thread{};
     bool threadRunning = false;
@@ -36,10 +37,11 @@ public:
     ~ListenThread() { terminateThread(); }
 
     void start(const std::string& port);
-    virtual void threadMain(ListenThread* p);
+    void threadMain();
 
-    // returns each new connection socket once, in connection queue order, otherwise INVALID_SOCKET
-    SOCKET getConnectionSocket();
+    /*  returns a new connection socket (or INVALID_SOCKET if no new connections)
+        NOTE: returned sockets are forgotten, so they must be closed by caller! */
+    [[nodiscard]] SOCKET getConnectionSocket();
     void terminateThread();
 
 };
