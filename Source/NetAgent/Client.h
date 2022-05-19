@@ -1,5 +1,5 @@
 #pragma once
-#include "StreamThread.h"
+#include "Sockets/StreamThread.h"
 
 /* CLIENT EXECUTION PATH 
 * 1. Initialize, resolve host address/port (DNS query)
@@ -10,29 +10,26 @@
 
 class Client 
 {
-    using MutexSocket = Sockets::MutexSocket;
-    using Lock = MutexSocket::Lock;
-
-    MutexSocket streamSocket;
+protected:
     StreamThread streamThread{};
-    // for async access to data from the actual receive buffer (which may be in-use by stream thread)
-    char* receiveBuffer = nullptr;
-    size_t receiveBufferDataSize = 0;
-
 public:
     Client();
     ~Client();
 
     // establish TCP connection (starts the client stream thread)
-    void connectStream(const std::string& hostname = std::string());
+    virtual void connectStream(const std::string& hostname = std::string(), const std::string& port = "27015");
+
+    bool isConnected() const { return streamThread.isThreadRunning(); }
 
     // send data to remote host over TCP stream
-    bool sendStream(const char* data = "TEST DATA", bool finalSend = false);
+    bool sendStream(const char* data = "nodata", bool finalSend = false);
 
     /*  returns pointer to the main-thread copy of the receive buffer,
     *   if (update==true) thread-safely copies stream-thread buffer to main-thread buffer */
-    char* getReceiveBuffer(size_t& dataSizeOut, bool update = true);
+    bool getReceiveBuffer(size_t& dataSizeOut, char& outputBuffer, const size_t& outputBufferSize);
+
+    bool getReceiveBuffer_String(std::string& str, const size_t& maxLength = 256);
     
-    bool isConnected() const { return streamThread.threadRunning; }
+    
     
 };

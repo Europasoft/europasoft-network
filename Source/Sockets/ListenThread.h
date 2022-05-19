@@ -10,39 +10,28 @@
 class ListenThread
 {
 protected:
-    std::mutex mutex;
-    struct MutexMembers
-    {
-        // always call acquire() to initialize a lock object before accessing these members
-        bool terminateThread = false;
-        std::string listenPort{};
-        SOCKET connectedSocket = INVALID_SOCKET;
-    } mxm;
-    using MXM = MutexMembers;
+    std::thread thread{};
+    bool threadRunning = false; // status value set by listen thread
+    bool forceTerminate = false; // may be set by main thread
 
-    // locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
-    _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(MXM*& mxmOut)
-    {
-        return std::move(std::unique_lock<std::mutex>(mutex));
-        mxmOut = &mxm; // member resources acquired by calling thread
-    }
-
-
+    std::string listenPort{};
+    Sockets::MutexSocket connectedSocket;
 
 public:
-    std::thread thread{};
-    bool threadRunning = false;
-
+    using Lock = Sockets::Lock; // syntactic sugar
     ListenThread() = default;
     ~ListenThread() { terminateThread(); }
 
     void start(const std::string& port);
     void threadMain();
 
+    bool isThreadRunning() const { return threadRunning; }
+    // forces the stream thread to shut down
+    void terminateThread() { forceTerminate = true; }
+
     /*  returns a new connection socket (or INVALID_SOCKET if no new connections)
-        NOTE: returned sockets are forgotten, so they must be closed by caller! */
+        NOTE: returned sockets are forgotten, so they must be closed by the caller */
     [[nodiscard]] SOCKET getConnectionSocket();
-    void terminateThread();
 
 };
 

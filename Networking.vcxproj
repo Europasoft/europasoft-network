@@ -30,6 +30,7 @@
     <ClInclude Include="Source\NetAgent\Client.h" />
     <ClInclude Include="Source\NetAgent\Server.h" />
     <ClInclude Include="Source\Sockets\ListenThread.h" />
+    <ClInclude Include="Source\Sockets\PlatformMacros.h" />
     <ClInclude Include="Source\Sockets\Sockets.h" />
     <ClInclude Include="Source\Sockets\StreamThread.h" />
   </ItemGroup>
@@ -131,6 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

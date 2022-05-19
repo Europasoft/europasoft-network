@@ -47,5 +47,8 @@
     <ClInclude Include="Source\Sockets\ListenThread.h">
       <Filter>Source\Sockets</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Sockets\PlatformMacros.h">
+      <Filter>Source\Sockets</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,133 +1,139 @@
 #include "StreamThread.h"
 #include <cassert>
+#include <limits.h>
 
-StreamThread::StreamThread(const size_t& sendBufferSize_, const size_t& receiveBufferSize_, 
-                    const size_t sndMax, const size_t& recMax) : sndMaxSize{sndMax}, recMaxSize{recMax}
+NetBuffer::NetBuffer() : bufMax{ SIZE_MAX } {};
+NetBuffer::NetBuffer(const size_t& allocSize) : bufMax{ SIZE_MAX } { realloc(allocSize); }
+NetBuffer::NetBuffer(const size_t& allocSize, const size_t& max_) : bufMax{ max_ } { realloc(allocSize); }
+NetBuffer::NetBuffer(NetBuffer&& src) noexcept : bufMax{ src.bufMax }
 {
-    reallocSendBuffer(sendBufferSize_);
-    reallocReceiveBuffer(receiveBufferSize_);
+    buffer = src.buffer;
+    bufferSize = src.bufferSize;
+    dataSize = src.dataSize;
+    src.buffer = nullptr;
+    src.dataSize = 0;
 }
-StreamThread::~StreamThread()
+NetBuffer::NetBuffer(const NetBuffer& src) : bufMax{ src.bufMax }
+{
+    dataSize = 0;
+    realloc(src.bufferSize);
+    memcpy(buffer, src.buffer, src.bufferSize);
+    dataSize = src.dataSize;
+    bufferSize = src.bufferSize;
+}
+NetBuffer::~NetBuffer() { if (buffer) { delete[] buffer; } }
+void NetBuffer::realloc(const size_t& newSize)
+{
+    assert(newSize > 0 && newSize <= bufMax && (newSize <= dataSize || dataSize == 0) && "invalid buffer size");
+    if (newSize == 0 || bufferSize == newSize) { return; }
+    Sockets::Lock bl; getBuffer(bl); // lock mutex to safely modify the buffer
+    bufferSize = min(newSize, bufMax);
+    auto* dst = new char[bufferSize];
+    if (dataSize > 0 && buffer) { memcpy(dst, buffer, dataSize); }
+    if (buffer) { delete[] buffer; }
+    buffer = dst;
+}
+void NetBuffer::setDataSize(const size_t& newSize)
 { 
-    terminateThread();
-    delete[] mxm.sndBuffer;
-    delete[] mxm.recBuffer;
-}
+    Sockets::Lock bl; getBuffer(bl); 
+    dataSize = newSize;
+};
 
-void StreamThread::bufMemRealloc(char*& bptr, const size_t& newSize)
-{
-    assert(newSize > 0);
-    MXM* mxm = nullptr;
-    auto lock = getMxm(mxm);
-    if (bptr) { delete[] bptr; }
-    bptr = new char[newSize];
-}
-void StreamThread::reallocSendBuffer(const size_t& newSize) 
-{ 
-    bufMemRealloc(mxm.sndBuffer, newSize); 
-    mxm.sndBufferSize = newSize; 
-}
-void StreamThread::reallocReceiveBuffer(const size_t& newSize)
-{
-    bufMemRealloc(mxm.recBuffer, newSize);
-    mxm.recBufferSize = newSize;
-}
+StreamThread::StreamThread(const size_t& sendBufferSize, const size_t& receiveBufferSize,
+                        const size_t sndMax, const size_t& recMax)
+                        : sndBuffer{ sendBufferSize, sndMax }, recBuffer{ receiveBufferSize, recMax } {};
+StreamThread::~StreamThread() { terminateThread(); }
 
-void StreamThread::start(Sockets::MutexSocket* s, const std::string& hostname_)
+void StreamThread::start(const std::string& hostName, const std::string& port_)
 {
-    hostname = hostname_; // stream thread will handle connecting, since hostname was specified
-    start(s);
+    // stream thread will handle connecting, since hostname was specified
+    if (isThreadRunning()) { return; }
+    hostname = hostName;
+    port = port_;
+    thread = std::thread([this] { this->threadMain(); }); // create thread
 }
-void StreamThread::start(Sockets::MutexSocket* s)
+void StreamThread::start(const SOCKET& s)
 {
     // this overload assumes socket is already connected
-    assert(s != nullptr && "stream thread needs pointer to mutex-protected socket");
-    mxm.socket = s;
-    thread = std::thread([this] { this->threadMain(this); }); // create thread
+    if (isThreadRunning()) { return; }
+    assert(s != INVALID_SOCKET && "connected socket (or hostname) required to start stream thread");
+    socket.set(s);
+    thread = std::thread([this] { this->threadMain(); }); // create thread
 }
 
-void StreamThread::threadMain(StreamThread* p)
+void StreamThread::threadMain()
 {
     threadRunning = true;
     bool terminate = false;
+
     // resolve hostname and connect
-    if (!hostname.empty())
+    if (!socket.isInitialized())
     { 
         SOCKET s;
-        auto r = Sockets::setupStream(hostname, s);
+        auto r = Sockets::setupStream(hostname, port, s);
         if (!r) { terminate = true; } // failure to connect
         else 
-        {
-            MXM* mxm = nullptr;
-            auto lock = p->getMxm(mxm);
-            mxm->socket->set(s); // set function is threadsafe
-        }
+        { socket.set(s); } // set function is threadsafe
     }
 
     // thread main loop
     while (!terminate)
     {
-        MXM* mxmptr = nullptr; 
-        auto lock = p->getMxm(mxmptr); // lock mutex protecting mxm structure
-        MXM& mxm = *mxmptr;
-
+        if (disconnectOutgoing) 
+        { 
+            Lock sl; 
+            disconnectOutgoing = !Sockets::shutdownConnection(socket.get(sl), 1); 
+        }
         // send TCP stream data
-        if (mxm.sndDataSize > 0)
+        if (sndBuffer.getDataSize() > 0)
         {
-            Sockets::MutexSocket::Lock sLock;
-            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
-            if (Sockets::sendData(s, mxm.sndBuffer, mxm.sndDataSize)) 
-            { mxm.sndDataSize = 0; } // indicate data sent
+            Lock s_lock, b_lock;
+            SOCKET s = socket.get(s_lock); // lock socket mutex, released at end of block
+            if (Sockets::sendData(s, sndBuffer.getBuffer(b_lock), sndBuffer.getDataSize()))
+            { sndBuffer.setDataSize(0); } // indicate data sent (mark empty)
         }
 
         // receive TCP stream data (blocking until buffer is full)
-        if (mxm.recDataSize == 0)
+        if (recBuffer.getDataSize() == 0)
         {
-            Sockets::MutexSocket::Lock sLock;
-            SOCKET s = mxm.socket->get(sLock); // lock socket mutex, released at end of block
-            Sockets::RecStat r = Sockets::receiveData(s, mxm.recBuffer, mxm.recBufferSize);
-            mxm.recDataSize = r.size;
+            Lock s_lock, b_lock;
+            SOCKET s = socket.get(s_lock); // lock socket mutex, released at end of block
+            Sockets::RecStat r = Sockets::receiveData(s, recBuffer.getBuffer(b_lock), recBuffer.getDataSize());
+            recBuffer.setDataSize(r.size);
             if (r.e == Sockets::RecStatE::ConnectionClosed)
-            { mxm.terminateThread = true; } // remote peer closed the connection
+            { terminate = true; } // remote peer closed the connection
         }
-        terminate = mxm.terminateThread;
+        terminate = forceTerminate || terminate;
     }
     threadRunning = false;
 }
 
 bool StreamThread::queueSend(const char& data, const size_t& size, bool overwrite)
 {
-    assert(threadRunning);
-    MXM* mxm = nullptr;
-    auto lock = getMxm(mxm);
-    if (size == 0 || (mxm->sndDataSize > 0 && !overwrite) || 
-        mxm->terminateThread || !threadRunning) { return false; }
-    if (size > mxm->sndBufferSize) 
+    assert(isThreadRunning() && "cannot send data, stream thread not running");
+    assert(size <= sndBuffer.bufMax && "send data will not fit in buffer");
+    if (size == 0 || (sndBuffer.getDataSize() > 0 && !overwrite) ||
+        forceTerminate || !isThreadRunning()) { return false; }
+    Lock bl; 
+    auto* bptr = sndBuffer.getBuffer(bl); // lock mutex to safely modify the buffer
+    if (size > sndBuffer.getDataSize())
     { 
-        if (size > sndMaxSize) { return false; }
-        reallocSendBuffer(size); 
+        if (size > sndBuffer.bufMax) { return false; }
+        sndBuffer.realloc(size);
     }
-    memcpy(mxm->sndBuffer, &data, size);
-    mxm->sndDataSize = size; // indicate size of data to be sent
+    memcpy(bptr, &data, size);
+    sndBuffer.setDataSize(size); // indicate size of data to be sent
     return true;
 }
 
 size_t StreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
 {
-    if (!mutex.try_lock()) { return 0; }
-    assert(dstBufferSize >= mxm.recDataSize && "destination buffer too small, data will be lost");
-    if (mxm.recDataSize == 0) { mutex.unlock(); return 0; }
-    auto sz = (dstBufferSize > mxm.recDataSize) ? mxm.recDataSize : dstBufferSize;
+    assert(dstBufferSize >= recBuffer.getDataSize() && "destination buffer too small, data will be lost");
+    if (recBuffer.getDataSize() == 0) { return 0; }
     // copy as much as will fit
-    memcpy(&dstBuffer, mxm.recBuffer, sz);
-    mxm.recDataSize = 0; // mark as empty ("was read")
-    mutex.unlock();
-    return sz;
-}
-
-void StreamThread::terminateThread()
-{
-    MXM* mxm = nullptr;
-    auto lock = getMxm(mxm);
-    mxm->terminateThread = true;
+    const auto& datasize = (dstBufferSize > recBuffer.getDataSize()) ? recBuffer.getDataSize() : dstBufferSize;
+    Lock bl;
+    memcpy(&dstBuffer, recBuffer.getBuffer(bl), datasize);
+    recBuffer.setDataSize(0); // mark as empty ("was read")
+    return datasize;
 }

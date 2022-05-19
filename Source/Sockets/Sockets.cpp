@@ -39,10 +39,10 @@ namespace Sockets
         return false;
 	}
 
-    bool setupStream(const std::string& hostname, SOCKET& socketOut) 
+    bool setupStream(const std::string& hostname, const std::string& port, SOCKET& socketOut) 
     {
         addrinfo* hostAddr = nullptr;
-        if (!resolveHostname(hostname, hostAddr)) { return false; }
+        if (!resolveHostname(hostname, hostAddr, port)) { return false; }
         SOCKET s = 0;
         auto r = connectSocket(hostAddr, s);
         freeaddrinfo(hostAddr);
