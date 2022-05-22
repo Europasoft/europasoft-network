@@ -32,7 +32,7 @@ namespace Sockets
 	bool setupStream(const std::string& hostname, const std::string& port, SOCKET& socketOut);
 	
 	// sends data over a socket
-	bool sendData(SOCKET& s, char* data, const size_t& dataSize);
+	bool sendData(SOCKET& s, const char* data, const size_t& dataSize);
 
 	bool listenSocket(SOCKET& s, const std::string& port);
 
@@ -45,6 +45,9 @@ namespace Sockets
 	// connectionless receive (UDP)
 	RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
 						struct sockaddr& srcAddrOut, size_t& srcAddrLenOut);
+
+	// gets the size of data available to be received, without blocking
+	long getReceiveSize(SOCKET s);
 
 	// shuts a connection down, flag can be one of: 0 (SD_RECEIVE), 1 (SD_SEND), 2 (SD_BOTH)
 	bool shutdownConnection(const SOCKET& s, int flag);

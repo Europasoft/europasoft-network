@@ -21,18 +21,20 @@
   <ItemGroup>
     <ClCompile Include="Source\NetAgent\Client.cpp" />
     <ClCompile Include="Source\NetAgent\Server.cpp" />
+    <ClCompile Include="Source\NetThread\ListenThread.cpp" />
+    <ClCompile Include="Source\NetThread\NetThreadSync.cpp" />
+    <ClCompile Include="Source\NetThread\StreamThread.cpp" />
     <ClCompile Include="Source\Networking.cpp" />
-    <ClCompile Include="Source\Sockets\ListenThread.cpp" />
     <ClCompile Include="Source\Sockets\Sockets.cpp" />
-    <ClCompile Include="Source\Sockets\StreamThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\NetAgent\Client.h" />
     <ClInclude Include="Source\NetAgent\Server.h" />
-    <ClInclude Include="Source\Sockets\ListenThread.h" />
+    <ClInclude Include="Source\NetThread\ListenThread.h" />
+    <ClInclude Include="Source\NetThread\NetThreadSync.h" />
+    <ClInclude Include="Source\NetThread\StreamThread.h" />
     <ClInclude Include="Source\Sockets\PlatformMacros.h" />
     <ClInclude Include="Source\Sockets\Sockets.h" />
-    <ClInclude Include="Source\Sockets\StreamThread.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

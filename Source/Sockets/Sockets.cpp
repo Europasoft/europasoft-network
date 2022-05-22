@@ -50,7 +50,7 @@ namespace Sockets
         return r;
     }
 
-    bool sendData(SOCKET& s, char* data, const size_t& dataSize)
+    bool sendData(SOCKET& s, const char* data, const size_t& dataSize)
     {
         return send(s, data, dataSize, 0) != SOCKET_ERROR;
     }
@@ -82,6 +82,18 @@ namespace Sockets
     RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
                     sockaddr& srcAddrOut, size_t& srcAddrLenOut)
     { return RecStat(recvfrom(s, &outBuffer, bufSize, 0, &srcAddrOut, (socklen_t*)&srcAddrLenOut)); }
+
+    long getReceiveSize(SOCKET s)
+    {
+#ifdef _WIN32
+        unsigned long len = 0;
+        ioctlsocket(s, FIONREAD, &len);
+#else
+        int len = 0;
+        ioctl(s, FIONREAD, &len);
+#endif
+        return (len > 0) ? (long)len : 0; // return at least 0
+    }
 
     bool shutdownConnection(const SOCKET& s, int flag) 
     { return shutdown(s, flag) != SOCKET_ERROR; }

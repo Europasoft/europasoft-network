@@ -6,7 +6,7 @@ int main()
 {
     std::cout << "\nInitializing...";
     Server server{};
-    Client client{};
+    Client client{};  client.noRecv();
     std::cout << "OK\nSERVER...";
     server.listenStart("5001");
     std::cout << "OK";
@@ -16,16 +16,22 @@ int main()
     std::cout << "\nConnecting...";
     bool connected = false;
     while (!server.checkConnection()) {}
-    std::cout << "OK\nConnection OK";
-    
-    std::cout << "\n\n[CLIENT] Enter a message: ";
-    std::string msg;
-    std::cin >> msg;
-    client.sendStream(msg.c_str());
+    std::cout << "OK\nSERVER Connection established";
 
-    std::string msg_in{};
-    while (!server.getReceiveBuffer_String(msg_in)) {}
-    std::cout << "\n[SERVER] data from peer: " << msg_in;
+    char* resBuf = new char[128];
+    size_t resSize = 0;
 
-    for (;;) {}
+    for (;;) 
+    {   resSize = server.getReceiveBuffer(resBuf, 128);
+        if (resSize > 0) 
+        {
+            std::cout << "\nSERVER IN: " << std::string(resBuf, resSize);
+            resSize = 0;
+        }
+
+        std::string msg;
+        std::cout << "\n\nCLIENT  >  ";
+        std::getline(std::cin, msg);
+        client.sendStream(msg.c_str(), msg.size());
+    }
 }

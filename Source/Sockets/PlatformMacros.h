@@ -10,6 +10,9 @@
 	#ifndef SOCKET_ERROR
 		#define SOCKET_ERROR -1
 	#endif
+	#ifndef SOCKET_ERROR
+		#define SOCKET_ERROR -1
+	#endif
 #endif
 #ifndef _Acquires_lock_()
 	#define _Acquires_lock_()

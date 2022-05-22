@@ -1,43 +1,7 @@
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>
-
-NetBuffer::NetBuffer() : bufMax{ SIZE_MAX } {};
-NetBuffer::NetBuffer(const size_t& allocSize) : bufMax{ SIZE_MAX } { realloc(allocSize); }
-NetBuffer::NetBuffer(const size_t& allocSize, const size_t& max_) : bufMax{ max_ } { realloc(allocSize); }
-NetBuffer::NetBuffer(NetBuffer&& src) noexcept : bufMax{ src.bufMax }
-{
-    buffer = src.buffer;
-    bufferSize = src.bufferSize;
-    dataSize = src.dataSize;
-    src.buffer = nullptr;
-    src.dataSize = 0;
-}
-NetBuffer::NetBuffer(const NetBuffer& src) : bufMax{ src.bufMax }
-{
-    dataSize = 0;
-    realloc(src.bufferSize);
-    memcpy(buffer, src.buffer, src.bufferSize);
-    dataSize = src.dataSize;
-    bufferSize = src.bufferSize;
-}
-NetBuffer::~NetBuffer() { if (buffer) { delete[] buffer; } }
-void NetBuffer::realloc(const size_t& newSize)
-{
-    assert(newSize > 0 && newSize <= bufMax && (newSize <= dataSize || dataSize == 0) && "invalid buffer size");
-    if (newSize == 0 || bufferSize == newSize) { return; }
-    Sockets::Lock bl; getBuffer(bl); // lock mutex to safely modify the buffer
-    bufferSize = min(newSize, bufMax);
-    auto* dst = new char[bufferSize];
-    if (dataSize > 0 && buffer) { memcpy(dst, buffer, dataSize); }
-    if (buffer) { delete[] buffer; }
-    buffer = dst;
-}
-void NetBuffer::setDataSize(const size_t& newSize)
-{ 
-    Sockets::Lock bl; getBuffer(bl); 
-    dataSize = newSize;
-};
+#include <iostream>
 
 StreamThread::StreamThread(const size_t& sendBufferSize, const size_t& receiveBufferSize,
                         const size_t sndMax, const size_t& recMax)
@@ -93,47 +57,46 @@ void StreamThread::threadMain()
             { sndBuffer.setDataSize(0); } // indicate data sent (mark empty)
         }
 
-        // receive TCP stream data (blocking until buffer is full)
-        if (recBuffer.getDataSize() == 0)
+        // receive TCP stream data
+        if (recBuffer.getDataSize() == 0 && !skipRecv)
         {
             Lock s_lock, b_lock;
             SOCKET s = socket.get(s_lock); // lock socket mutex, released at end of block
-            Sockets::RecStat r = Sockets::receiveData(s, recBuffer.getBuffer(b_lock), recBuffer.getDataSize());
-            recBuffer.setDataSize(r.size);
-            if (r.e == Sockets::RecStatE::ConnectionClosed)
-            { terminate = true; } // remote peer closed the connection
+            // avoid blocking if there is nothing to receive
+            auto recSize = Sockets::getReceiveSize(s);
+            if (recSize > 0)
+            {
+                Sockets::RecStat r = Sockets::receiveData(s, recBuffer.getBuffer(b_lock), recSize);
+                recBuffer.setDataSize(recSize);
+                if (r.e == Sockets::RecStatE::ConnectionClosed) { terminate = true; } // remote peer closed the connection
+            }
         }
+        
         terminate = forceTerminate || terminate;
     }
     threadRunning = false;
 }
 
-bool StreamThread::queueSend(const char& data, const size_t& size, bool overwrite)
+bool StreamThread::queueSend(const char* data, const size_t& size, bool overwrite)
 {
     assert(isThreadRunning() && "cannot send data, stream thread not running");
     assert(size <= sndBuffer.bufMax && "send data will not fit in buffer");
-    if (size == 0 || (sndBuffer.getDataSize() > 0 && !overwrite) ||
-        forceTerminate || !isThreadRunning()) { return false; }
+    if (size == 0 || (sndBuffer.getDataSize() > 0 && !overwrite) || forceTerminate) { return false; }
     Lock bl; 
     auto* bptr = sndBuffer.getBuffer(bl); // lock mutex to safely modify the buffer
-    if (size > sndBuffer.getDataSize())
-    { 
-        if (size > sndBuffer.bufMax) { return false; }
-        sndBuffer.realloc(size);
-    }
-    memcpy(bptr, &data, size);
+    if (size > sndBuffer.getBufferSize()) { sndBuffer.realloc(size); }
+    memcpy(bptr, data, size);
     sndBuffer.setDataSize(size); // indicate size of data to be sent
     return true;
 }
 
-size_t StreamThread::getReceiveBuffer(char& dstBuffer, const size_t& dstBufferSize)
+size_t StreamThread::getReceiveBuffer(char* dstBuffer, const size_t& dstBufferSize)
 {
-    assert(dstBufferSize >= recBuffer.getDataSize() && "destination buffer too small, data will be lost");
-    if (recBuffer.getDataSize() == 0) { return 0; }
-    // copy as much as will fit
-    const auto& datasize = (dstBufferSize > recBuffer.getDataSize()) ? recBuffer.getDataSize() : dstBufferSize;
+    auto size = recBuffer.getDataSize();
+    if (size <= 0) { return 0; }
+    assert(dstBufferSize >= size && "destination buffer too small, data will be lost");
     Lock bl;
-    memcpy(&dstBuffer, recBuffer.getBuffer(bl), datasize);
+    memcpy(dstBuffer, recBuffer.getBuffer(bl), size);
     recBuffer.setDataSize(0); // mark as empty ("was read")
-    return datasize;
+    return size;
 }

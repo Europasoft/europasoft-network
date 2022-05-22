@@ -1,6 +1,6 @@
 #pragma once
 #include "NetAgent/Client.h"
-#include "Sockets/ListenThread.h"
+#include "NetThread/ListenThread.h"
 
 /* SERVER EXECUTION PATH
 * 1. Initialize, resolve own address/port

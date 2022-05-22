@@ -10,6 +10,9 @@
     <Filter Include="Source\Sockets">
       <UniqueIdentifier>{62c96c85-10a4-4989-9c1b-61eca27c1c7d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\NetThread">
+      <UniqueIdentifier>{3ca2d3fb-cec1-4e03-8410-4d7574118cb3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Sockets\Sockets.cpp">
@@ -24,11 +27,14 @@
     <ClCompile Include="Source\Networking.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Sockets\StreamThread.cpp">
-      <Filter>Source\Sockets</Filter>
+    <ClCompile Include="Source\NetThread\ListenThread.cpp">
+      <Filter>Source\NetThread</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Sockets\ListenThread.cpp">
-      <Filter>Source\Sockets</Filter>
+    <ClCompile Include="Source\NetThread\NetThreadSync.cpp">
+      <Filter>Source\NetThread</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\NetThread\StreamThread.cpp">
+      <Filter>Source\NetThread</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -41,14 +47,17 @@
     <ClInclude Include="Source\NetAgent\Server.h">
       <Filter>Source\NetAgent</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Sockets\StreamThread.h">
-      <Filter>Source\Sockets</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Sockets\ListenThread.h">
-      <Filter>Source\Sockets</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Sockets\PlatformMacros.h">
       <Filter>Source\Sockets</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NetThread\ListenThread.h">
+      <Filter>Source\NetThread</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NetThread\NetThreadSync.h">
+      <Filter>Source\NetThread</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\NetThread\StreamThread.h">
+      <Filter>Source\NetThread</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

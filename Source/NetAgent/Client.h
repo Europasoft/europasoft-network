@@ -1,5 +1,5 @@
 #pragma once
-#include "Sockets/StreamThread.h"
+#include "NetThread/StreamThread.h"
 
 /* CLIENT EXECUTION PATH 
 * 1. Initialize, resolve host address/port (DNS query)
@@ -16,20 +16,17 @@ public:
     Client();
     ~Client();
 
+    void noRecv() { streamThread.skipRecv = true; }
+
     // establish TCP connection (starts the client stream thread)
     virtual void connectStream(const std::string& hostname = std::string(), const std::string& port = "27015");
 
     bool isConnected() const { return streamThread.isThreadRunning(); }
 
     // send data to remote host over TCP stream
-    bool sendStream(const char* data = "nodata", bool finalSend = false);
+    bool sendStream(const char* data, const size_t& size, bool finalSend = false);
 
-    /*  returns pointer to the main-thread copy of the receive buffer,
-    *   if (update==true) thread-safely copies stream-thread buffer to main-thread buffer */
-    bool getReceiveBuffer(size_t& dataSizeOut, char& outputBuffer, const size_t& outputBufferSize);
+    //  copies data from receive buffer to a main-thread buffer
+    size_t getReceiveBuffer(char* outputBuffer, const size_t& outputBufferSize);
 
-    bool getReceiveBuffer_String(std::string& str, const size_t& maxLength = 256);
-    
-    
-    
 };
