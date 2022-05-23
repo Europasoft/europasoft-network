@@ -1,5 +1,9 @@
 #include "ListenThread.h"
+#include "StreamThread.h"
 #include <cassert>
+
+ListenThread::ListenThread(StreamThread& streamThread) : streamThreadPtr{ &streamThread } {};
+ListenThread::~ListenThread() { terminateThread(); }
 
 void ListenThread::start(const std::string& port)
 {
@@ -10,35 +14,24 @@ void ListenThread::start(const std::string& port)
 
 void ListenThread::threadMain()
 {
-    threadRunning = true;
     bool terminate = false;
 
     SOCKET listenSocket = INVALID_SOCKET;
-
     // create listen socket
     if (!Sockets::listenSocket(listenSocket, listenPort)) { terminate = true; }
 
-    // listener loop
+    // listener loop (currently only accepts the first connection request)
     while (!terminate)
     {
-        Lock sl;
-        // prevent overwriting connection socket before it has been read (presumably managed somewhere else)
-        if (connectedSocket.get(sl) != INVALID_SOCKET) { continue; }
-        SOCKET cs = accept(listenSocket, nullptr, nullptr); // try to accept a connection
-        if (cs != INVALID_SOCKET) { connectedSocket.set(cs, true); }
+        if (!streamThreadPtr->isStreamConnected())
+        {
+            SOCKET s = accept(listenSocket, nullptr, nullptr); // try to accept a connection
+            if (s == INVALID_SOCKET) { continue; }
+            streamThreadPtr->start(s); // hand over the connected socket
+            terminateThread(); // TODO: support multiple connections
+        }
         terminate = forceTerminate || terminate;
     }
-    if (listenSocket != INVALID_SOCKET) { close(listenSocket); }
-    threadRunning = false;
-}
-
-SOCKET ListenThread::getConnectionSocket()
-{
-    SOCKET socketOut = INVALID_SOCKET;
-    {
-        Lock sl;
-        socketOut = connectedSocket.get(sl); // get
-        connectedSocket.set(INVALID_SOCKET, true); // mark as "read"
-    }
-    return socketOut;
+    Sockets::closeSocket(listenSocket);
+    // thread terminates at this point
 }

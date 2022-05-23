@@ -16,17 +16,17 @@ public:
     Client();
     ~Client();
 
-    // establish TCP connection (starts the client stream thread)
+    // establish TCP connection to a remote host, starts stream thread in client mode
     void connectStream(const std::string& hostname = std::string(), const std::string& port = "27015");
 
+    // returns current state of the stream thread
     bool isConnected() const { return streamThread.isStreamConnected(); }
 
     // send data to remote host over TCP stream
-    bool sendStream(const char* data, const size_t& size, bool finalSend = false);
+    bool sendStream(const char* data, const size_t& size);
     bool sendStream(const std::string& str);
 
     //  copies data from receive buffer to a main-thread buffer
     size_t getReceiveBuffer(char* outputBuffer, const size_t& outputBufferSize);
     std::string getReceiveBuffer(const size_t& maxLength = 256);
-
 };

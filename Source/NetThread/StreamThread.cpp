@@ -1,7 +1,6 @@
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>
-#include <iostream>
 
 StreamThread::StreamThread(const size_t& sendBufferSize, const size_t& receiveBufferSize,
                         const size_t sndMax, const size_t& recMax)
@@ -19,7 +18,7 @@ void StreamThread::start(const std::string& hostName, const std::string& port_)
 void StreamThread::start(const SOCKET& s)
 {
     // this overload assumes socket is already connected (server mode)
-    if (threadRunning) { return; }
+    if (isStreamConnected()) { return; }
     assert(s != INVALID_SOCKET && "connected socket (or hostname) required to start stream thread");
     socket.set(s);
     streamConnected = true;
@@ -28,36 +27,27 @@ void StreamThread::start(const SOCKET& s)
 
 void StreamThread::threadMain()
 {
-    threadRunning = true;
     bool terminate = false;
 
     // resolve hostname and connect (only in client mode)
-    if (!isStreamConnected())
+    if (!socket.isInitialized())
     {
-        uint32_t attemptCount = 0;
-        while (attemptCount < maxConnectAttempts) 
+        for (uint32_t i = 0; i < 8000; i++) 
         {
             SOCKET s;
-            bool res = Sockets::setupStream(hostname, port, s);
-            if (res) 
-            { 
+            if (Sockets::setupStream(hostname, port, s))
+            {
                 socket.set(s); // set function is threadsafe
                 streamConnected = true;
-                break; 
-            } 
-            attemptCount++;
+                break;
+            }
         }
-        terminate = true; // failure to connect
-    }
+        if (!isStreamConnected()) { terminate = true; }
+    } 
 
     // thread main loop
     while (!terminate)
     {
-        if (disconnectOutgoing) 
-        { 
-            Lock sl; 
-            disconnectOutgoing = !Sockets::shutdownConnection(socket.get(sl), 1); 
-        }
         // send TCP stream data
         if (sndBuffer.getDataSize() > 0)
         {
@@ -84,12 +74,12 @@ void StreamThread::threadMain()
         
         terminate = forceTerminate || terminate;
     }
-    threadRunning = false;
+    // thread terminates at this point
 }
 
 bool StreamThread::queueSend(const char* data, const size_t& size, bool overwrite)
 {
-    assert(isStreamConnected() && "cannot send data, stream thread not running");
+    assert(isStreamConnected() && "cannot send data, not connected");
     assert(size <= sndBuffer.bufMax && "send data will not fit in buffer");
     if (size == 0 || (sndBuffer.getDataSize() > 0 && !overwrite) || forceTerminate) { return false; }
     Lock bl;

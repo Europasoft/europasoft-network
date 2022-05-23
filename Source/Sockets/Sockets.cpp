@@ -92,13 +92,13 @@ namespace Sockets
         int len = 0;
         ioctl(s, FIONREAD, &len);
 #endif
-        return (len > 0) ? (long)len : 0; // return at least 0
+        return (long)len; // return at least 0
     }
 
     bool shutdownConnection(const SOCKET& s, int flag) 
     { return shutdown(s, flag) != SOCKET_ERROR; }
 
-    bool closeSocket(SOCKET s) 
-    { return close(s) != SOCKET_ERROR; }
+    void closeSocket(SOCKET s) 
+    { if (s != INVALID_SOCKET) { close(s); } }
 
 }

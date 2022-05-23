@@ -11,13 +11,12 @@
 class Server : public Client
 {
 protected:
-	ListenThread listenThread{};
+	ListenThread listenThread{ streamThread };
 public:
-	Server();
-	~Server();
+	Server() = default;
+	void connectStream() = delete; // disable calls to client-specific function
 
 	// begin accepting connections
 	void listenStart(const std::string& bindPort = "27015") { listenThread.start(bindPort); }
-	// (may be called repeatedly) check whether client has connected, and if so, start the stream thread
-	bool checkConnection();
+
 };

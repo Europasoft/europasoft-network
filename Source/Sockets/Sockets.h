@@ -28,7 +28,7 @@ namespace Sockets
 	// attempts to open a client socket and connect, remember to close the socket
 	bool connectSocket(struct addrinfo*& addr, SOCKET& socketOut);
 
-	// handles both hostname resolution and socket creation, establishes client-server TCP connection
+	// handles both hostname resolution and socket creation, establishes client-to-server TCP connection
 	bool setupStream(const std::string& hostname, const std::string& port, SOCKET& socketOut);
 	
 	// sends data over a socket
@@ -53,7 +53,7 @@ namespace Sockets
 	bool shutdownConnection(const SOCKET& s, int flag);
 
 	// completely closes a socket
-	bool closeSocket(SOCKET s);
+	void closeSocket(SOCKET s);
 
 	// threadsafe socket handle, auto-closing
 	class MutexSocket 

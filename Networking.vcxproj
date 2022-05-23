@@ -136,7 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

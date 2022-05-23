@@ -11,11 +11,9 @@ Client::~Client()
 
 void Client::connectStream(const std::string& hostname, const std::string& port) { streamThread.start(hostname, port); }
 
-bool Client::sendStream(const char* data, const size_t& size, bool finalSend)
+bool Client::sendStream(const char* data, const size_t& size)
 {
-	const auto r = streamThread.queueSend(data, size);
-	if (finalSend) { streamThread.shutdownOutgoing(); } // disconnect outgoing only
-	return r;
+	return streamThread.queueSend(data, size);
 }
 
 bool Client::sendStream(const std::string& str)
