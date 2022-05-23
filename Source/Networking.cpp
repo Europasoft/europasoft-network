@@ -4,34 +4,23 @@
 
 int main()
 {
-    std::cout << "\nInitializing...";
     Server server{};
-    Client client{};  client.noRecv();
-    std::cout << "OK\nSERVER...";
-    server.listenStart("5001");
-    std::cout << "OK";
-    std::cout << "\nCLIENT...";
-    client.connectStream("localhost", "5001");
-    std::cout << "OK";
+    Client client{};
     std::cout << "\nConnecting...";
-    bool connected = false;
+    server.listenStart("5001");
+    client.connectStream("localhost", "5001");
+
     while (!server.checkConnection()) {}
-    std::cout << "OK\nSERVER Connection established";
+    std::cout << "\nConnected";
 
-    char* resBuf = new char[128];
-    size_t resSize = 0;
-
-    for (;;) 
-    {   resSize = server.getReceiveBuffer(resBuf, 128);
-        if (resSize > 0) 
-        {
-            std::cout << "\nSERVER IN: " << std::string(resBuf, resSize);
-            resSize = 0;
-        }
-
+    for (;;)
+    {
         std::string msg;
-        std::cout << "\n\nCLIENT  >  ";
+        std::cout << "\n\n > ";
         std::getline(std::cin, msg);
-        client.sendStream(msg.c_str(), msg.size());
+        client.sendStream(msg);
+
+        std::string sin = server.getReceiveBuffer();
+        if (!sin.empty()) std::cout << "\nRECV: " << sin;
     }
 }

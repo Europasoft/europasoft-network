@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Example\Example.cpp" />
     <ClCompile Include="Source\NetAgent\Client.cpp" />
     <ClCompile Include="Source\NetAgent\Server.cpp" />
     <ClCompile Include="Source\NetThread\ListenThread.cpp" />
@@ -28,6 +29,7 @@
     <ClCompile Include="Source\Sockets\Sockets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Example\Example.h" />
     <ClInclude Include="Source\NetAgent\Client.h" />
     <ClInclude Include="Source\NetAgent\Server.h" />
     <ClInclude Include="Source\NetThread\ListenThread.h" />
@@ -134,7 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,6 +151,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

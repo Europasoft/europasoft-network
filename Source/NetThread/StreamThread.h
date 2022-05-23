@@ -15,6 +15,7 @@ protected:
     
     std::thread thread{};
     bool threadRunning = false; // status value set by stream thread
+    bool streamConnected = false;
     bool forceTerminate = false; // may be set by main thread
     bool disconnectOutgoing = false; // orders a shutdown of the send connection, may be set by main thread
     
@@ -25,6 +26,7 @@ protected:
     // if not empty, indicates that the stream thread is responsible for connecting and socket creation
     std::string hostname = std::string();
     std::string port = std::string();
+    uint32_t maxConnectAttempts = 5000; // affects client-mode connect only
 
     /* locks the mutex, blocks if currently locked by other thread, mutex will unlock when lock object is destroyed
     _Acquires_lock_(return) [[nodiscard]] std::unique_lock<std::mutex>&& getMxm(MXM*& mxmOut)
@@ -38,13 +40,12 @@ public:
     StreamThread(const size_t& sendBufferSize = 256, const size_t& receiveBufferSize = 256, 
                         const size_t sndMax = 1024, const size_t& recMax = 1024);
     ~StreamThread();
-
-    bool skipRecv = false;
     
     void start(const std::string& hostName, const std::string& port_);
     void start(const SOCKET& s);
     void threadMain();
     bool isThreadRunning() const { return threadRunning; }
+    bool isStreamConnected() const { return streamConnected; };
 
     // thread-safely copies data to the send buffer
     bool queueSend(const char* data, const size_t& size, bool overwrite = false);

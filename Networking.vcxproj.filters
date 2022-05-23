@@ -13,6 +13,9 @@
     <Filter Include="Source\NetThread">
       <UniqueIdentifier>{3ca2d3fb-cec1-4e03-8410-4d7574118cb3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Example">
+      <UniqueIdentifier>{28e5f5e3-72c0-4315-a779-169ef448b722}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Sockets\Sockets.cpp">
@@ -36,6 +39,9 @@
     <ClCompile Include="Source\NetThread\StreamThread.cpp">
       <Filter>Source\NetThread</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Example\Example.cpp">
+      <Filter>Source\Example</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Sockets\Sockets.h">
@@ -58,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="Source\NetThread\StreamThread.h">
       <Filter>Source\NetThread</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Example\Example.h">
+      <Filter>Source\Example</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
