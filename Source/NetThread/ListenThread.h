@@ -12,7 +12,7 @@ class ListenThread
 {
 protected:
     std::thread thread{};
-    bool forceTerminate = false; // may be set by main thread
+    std::atomic<bool> forceTerminate = false; // may be set by main thread
 
     std::string listenPort{};
     StreamThread* streamThreadPtr = nullptr; // used to automatically hand over the first connected socket

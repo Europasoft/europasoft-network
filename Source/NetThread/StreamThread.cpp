@@ -1,6 +1,7 @@
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>
+#include <iostream>
 
 StreamThread::StreamThread(const size_t& sendBufferSize, const size_t& receiveBufferSize,
                         const size_t sndMax, const size_t& recMax)
@@ -10,15 +11,16 @@ StreamThread::~StreamThread() { terminateThread(); }
 void StreamThread::start(const std::string& hostName, const std::string& port_)
 {
     // stream thread will handle connecting, since hostname was specified (client mode)
-    if (isStreamConnected()) { return; }
+    if (streamConnected) { return; }
     hostname = hostName;
     port = port_;
+    streamConnected = false;
     thread = std::thread([this] { this->threadMain(); }); // create thread
 }
 void StreamThread::start(const SOCKET& s)
 {
     // this overload assumes socket is already connected (server mode)
-    if (isStreamConnected()) { return; }
+    if (streamConnected) { return; }
     assert(s != INVALID_SOCKET && "connected socket (or hostname) required to start stream thread");
     socket.set(s);
     streamConnected = true;
@@ -30,9 +32,11 @@ void StreamThread::threadMain()
     bool terminate = false;
 
     // resolve hostname and connect (only in client mode)
-    if (!socket.isInitialized())
+    if (!streamConnected)
     {
-        for (uint32_t i = 0; i < 8000; i++) 
+        Timer t;
+        t.start();
+        while (!t.checkTimeout(10.0))
         {
             SOCKET s;
             if (Sockets::setupStream(hostname, port, s))
@@ -42,8 +46,13 @@ void StreamThread::threadMain()
                 break;
             }
         }
-        if (!isStreamConnected()) { terminate = true; }
-    } 
+        // connection timeout
+        if (!streamConnected) 
+        { 
+            terminate = true;
+            connectionFailure = true;
+        }
+    }
 
     // thread main loop
     while (!terminate)
@@ -74,6 +83,7 @@ void StreamThread::threadMain()
         
         terminate = forceTerminate || terminate;
     }
+    streamConnected = false;
     // thread terminates at this point
 }
 

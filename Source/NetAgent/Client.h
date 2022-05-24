@@ -21,6 +21,7 @@ public:
 
     // returns current state of the stream thread
     bool isConnected() const { return streamThread.isStreamConnected(); }
+    bool connectionFailed() const { return streamThread.isFailed(); }
 
     // send data to remote host over TCP stream
     bool sendStream(const char* data, const size_t& size);

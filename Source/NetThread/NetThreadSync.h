@@ -1,6 +1,6 @@
 #pragma once
 #include <mutex>
-#include <stack>
+#include <chrono>
 #include <cassert>
 
 // data buffer wrapper, with built-in mutex management for multi-threaded access
@@ -28,12 +28,32 @@ public:
         lock = std::move(std::unique_lock<std::recursive_mutex>(m)); return buffer;
     } // mutex will unlock when lock object is destroyed
 
-// getters (will not block)
+	// getters (will not block)
     const size_t& getDataSize() const { return dataSize; }
     const size_t& getBufferSize() const { return bufferSize; }
 };
 
-class NetThreadErrorHandler 
+class Timer
 {
-    enum class SocketErrorReason {  };
+	using clock = std::chrono::steady_clock;
+	using timePoint = clock::time_point;
+public:
+	Timer() = default;
+	void start() { startTime = clock::now(); }
+	double getElapsed() const
+	{
+		std::chrono::duration<double, std::milli> ms = (clock::now() - startTime);
+		return (ms.count() / 1000.0);
+	}
+	bool checkTimeout(const double& max) 
+	{
+		if (getElapsed() >= max) 
+		{ 
+			start(); 
+			return true; 
+		}
+		return false;
+	}
+private:
+	timePoint startTime;
 };

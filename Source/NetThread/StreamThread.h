@@ -14,8 +14,9 @@ protected:
     using size_t = std::size_t;
     
     std::thread thread{};
-    bool streamConnected = false;
-    bool forceTerminate = false; // may be set by main thread
+    std::atomic<bool> streamConnected = false;
+    std::atomic<bool> connectionFailure = false;
+    std::atomic<bool> forceTerminate = false; // may be set by main thread
     
     Sockets::MutexSocket socket;
     NetBuffer recBuffer;
@@ -33,7 +34,9 @@ public:
     void start(const std::string& hostName, const std::string& port_);
     void start(const SOCKET& s);
     void threadMain();
+    
     bool isStreamConnected() const { return streamConnected; };
+    bool isFailed() const { return connectionFailure; }
 
     // thread-safely copies to send buffer (returns false if buffer still has unsent data, unless overwrite=true)
     bool queueSend(const char* data, const size_t& size, bool overwrite = false);

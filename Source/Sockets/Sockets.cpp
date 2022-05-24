@@ -1,5 +1,5 @@
 #include "Sockets.h"
-
+#include <cassert>
 namespace Sockets
 {
 #ifdef _WIN32
@@ -18,21 +18,21 @@ namespace Sockets
         hints.ai_socktype = SOCK_STREAM; // STREAM, DGRAM, etc.
         hints.ai_protocol = IPPROTO_TCP;
         hints.ai_family = AF_UNSPEC; // IPv4 (AF_INIT), IPv6 (AF_INET6), etc.
-        if (listenSocket) { hints.ai_flags = AI_PASSIVE; }
-
-        const char* h = hostname.empty() ? NULL : hostname.c_str();
-		return getaddrinfo(h, port.c_str(), &hints, &addrOut) == 0;
+        if (listenSocket) 
+        { hints.ai_flags = AI_PASSIVE; }
+        const char* h = listenSocket ? NULL : hostname.c_str();
+        return (getaddrinfo(h, port.c_str(), &hints, &addrOut) == 0);
 	}
 
 	bool connectSocket(addrinfo*& addr, SOCKET& socketOut)
 	{
         for (addrinfo* p = addr; p; p = p->ai_next)
         {
-            SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            SOCKET s = INVALID_SOCKET;
+            s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
             if (s == INVALID_SOCKET) { continue; }
-            if (connect(s, p->ai_addr, (socklen_t)p->ai_addrlen) == SOCKET_ERROR) { close(s); continue; }
-            if (s == INVALID_SOCKET) { continue; }
-
+            bool connected = (connect(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
+            if (s == INVALID_SOCKET || !connected) { closeSocket(s); continue; }
             socketOut = s;
             return true;
         }
@@ -43,11 +43,11 @@ namespace Sockets
     {
         addrinfo* hostAddr = nullptr;
         if (!resolveHostname(hostname, hostAddr, port)) { return false; }
-        SOCKET s = 0;
-        auto r = connectSocket(hostAddr, s);
+        SOCKET s = INVALID_SOCKET;
+        bool cr = connectSocket(hostAddr, s);
         freeaddrinfo(hostAddr);
         socketOut = s;
-        return r;
+        return cr;
     }
 
     bool sendData(SOCKET& s, const char* data, const size_t& dataSize)
