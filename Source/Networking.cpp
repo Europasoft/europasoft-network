@@ -1,19 +1,9 @@
 #include "NetAgent/Server.h"
 #include "Example/Example.h"
 #include <iostream>
-
+#include <vector>
 int main()
 {
-    // TEST TEMPORARY (support for direct connect by IP - work in progress) -------
-    Sockets::init();
-    addrinfo* ai = nullptr;
-    if (!Sockets::resolveHostname("localhost", ai, "5001")) { std::cout << "hostname resolve failed"; }
-    auto* sa = ai->ai_addr;
-    std::cout << std::string(sa->sa_data, ai->ai_addrlen);
-
-    std::cout << "\ntest done";
-    // END TEST -------------------------------------------------------------------
-    std::cin.ignore();
     ChatClient client{};
 
     std::string h{};

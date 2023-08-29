@@ -1,7 +1,6 @@
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>
-#include <iostream>
 
 StreamThread::StreamThread(const size_t& sendBufferSize, const size_t& receiveBufferSize,
                         const size_t sndMax, const size_t& recMax)

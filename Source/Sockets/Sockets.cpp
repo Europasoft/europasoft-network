@@ -10,16 +10,18 @@ namespace Sockets
     bool cleanup() { return true; }
 #endif
 
-    bool resolveHostname(const std::string& hostname, addrinfo*& addrOut, 
-                        const std::string& port, bool listenSocket)
+    bool resolveHostname(const std::string& hostname, bool numericHost, addrinfo*& addrOut, 
+                        const std::string& port, bool numericPort, bool listenSocket)
 	{
         addrinfo hints{};
         memset(&hints, 0, sizeof(hints));
         hints.ai_socktype = SOCK_STREAM; // STREAM, DGRAM, etc.
         hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_family = AF_UNSPEC; // IPv4 (AF_INIT), IPv6 (AF_INET6), etc.
-        if (listenSocket) 
-        { hints.ai_flags = AI_PASSIVE; }
+        hints.ai_family = AF_INET; // IPv4 (AF_INET), IPv6 (AF_INET6), etc.
+        hints.ai_flags =  (numericHost ? AI_NUMERICHOST : 0x0)
+                        | (numericPort ? AI_NUMERICSERV : 0x0)
+                        | (listenSocket ? AI_PASSIVE : 0x0);
+
         const char* h = listenSocket ? NULL : hostname.c_str();
         return (getaddrinfo(h, port.c_str(), &hints, &addrOut) == 0);
 	}
@@ -28,6 +30,8 @@ namespace Sockets
 	{
         for (addrinfo* p = addr; p; p = p->ai_next)
         {
+            if (p->ai_family != 2) { continue; }
+            std::cout << "\nAttempting connection to " << getAddrAsString(p);
             SOCKET s = INVALID_SOCKET;
             s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
             if (s == INVALID_SOCKET) { continue; }
@@ -42,10 +46,10 @@ namespace Sockets
     bool setupStream(const std::string& hostname, const std::string& port, SOCKET& socketOut) 
     {
         addrinfo* hostAddr = nullptr;
-        if (!resolveHostname(hostname, hostAddr, port)) { return false; }
+        if (!resolveHostname(hostname, false, hostAddr, port, true)) { return false; }
         SOCKET s = INVALID_SOCKET;
         bool cr = connectSocket(hostAddr, s);
-        freeaddrinfo(hostAddr);
+        //freeaddrinfo(hostAddr);
         socketOut = s;
         return cr;
     }
@@ -58,8 +62,9 @@ namespace Sockets
     bool listenSocket(SOCKET& s, const std::string& port)
     {
         addrinfo* p = nullptr;
-        if (!resolveHostname(std::string(), p, port, true)) { return false; }
+        if (!resolveHostname(std::string(), true, p, port, true, true)) { return false; }
         SOCKET ls = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        setsockopt(ls, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(bool));
         auto r_b = (bind(ls, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
         auto r_l = (listen(ls, 1000) != SOCKET_ERROR);
         freeaddrinfo(p);
@@ -101,4 +106,14 @@ namespace Sockets
     void closeSocket(SOCKET s) 
     { if (s != INVALID_SOCKET) { close(s); } }
 
+    std::string getAddrAsString(addrinfo* ai)
+    {
+        if (!ai) { return std::string(); }
+        char* addrStr = new char[46];
+        // inet_ntop() should convert the address from network-byte-order to host-byte-order
+        inet_ntop(ai->ai_family, &((struct sockaddr_in*)ai->ai_addr)->sin_addr, addrStr, 46);
+        std::string str = std::string(addrStr, strlen(addrStr));
+        delete[] addrStr;
+        return str;
+    }
 }

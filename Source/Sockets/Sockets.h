@@ -13,6 +13,8 @@
 #include <string>
 #include <mutex>
 
+#include <iostream>
+
 namespace Sockets
 {
 	using size_t = std::size_t;
@@ -22,8 +24,8 @@ namespace Sockets
 	bool cleanup();
 
 	// resolves address from hostname, remember to use freeaddrinfo() on the result, empty hostname returns localhost
-	bool resolveHostname(const std::string& hostname, struct addrinfo*& addrOut, 
-						const std::string& port, bool listenSocket = false);
+	bool resolveHostname(const std::string& hostname, bool numericHost, addrinfo*& addrOut,
+						const std::string& port, bool numericPort, bool listenSocket = false);
 
 	// attempts to open a client socket and connect, remember to close the socket
 	bool connectSocket(struct addrinfo*& addr, SOCKET& socketOut);
@@ -54,6 +56,8 @@ namespace Sockets
 
 	// completely closes a socket
 	void closeSocket(SOCKET s);
+
+	std::string getAddrAsString(addrinfo* ai);
 
 	// threadsafe socket handle, auto-closing
 	class MutexSocket 
@@ -92,6 +96,7 @@ namespace Sockets
 		}
 		bool isInitialized() const { return initialized; }
 	};
+
 	
 }
 
