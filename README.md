@@ -1,4 +1,4 @@
-# Networking
+# net-rpg
 Multithreaded, cross-platform (Windows/Linux) high-performance C++ networking library
 
 The goal for this API is to have a minimal cross-compilable codebase that is easy to integrate with other projects, and which provides identical perfomance for both Windows and UNIX systems.
