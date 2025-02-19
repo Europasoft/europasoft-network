@@ -10,42 +10,40 @@
 // TCP send/receive op thread class
 class StreamThread
 {
-protected:
-    using size_t = std::size_t;
-    
-    std::thread thread{};
-    std::atomic<bool> streamConnected = false;
-    std::atomic<bool> connectionFailure = false;
-    std::atomic<bool> forceTerminate = false; // may be set by main thread
-    
-    Sockets::MutexSocket socket;
-    NetBuffer recBuffer;
-    NetBuffer sndBuffer;
-    // if not empty, indicates that the stream thread is responsible for connecting and socket creation
-    std::string hostname = std::string();
-    std::string port = std::string();
-
 public:
     using Lock = Sockets::Lock; // syntactic sugar
-    StreamThread(const size_t& sendBufferSize = 256, const size_t& receiveBufferSize = 256, 
-                        const size_t sndMax = 1024, const size_t& recMax = 1024);
+    StreamThread(size_t sendBufferSize, size_t receiveBufferSize);
     ~StreamThread();
+
+    void start(std::string_view hostname_, std::string_view port_, size_t connectTimeout_);
+    void start(SOCKET socket_);
     
-    void start(const std::string& hostName, const std::string& port_);
-    void start(const SOCKET& s);
-    void threadMain();
     
     bool isStreamConnected() const { return streamConnected; };
     bool isFailed() const { return connectionFailure; }
 
-    // thread-safely copies to send buffer (returns false if buffer still has unsent data, unless overwrite=true)
-    bool queueSend(const char* data, const size_t& size, bool overwrite = false);
+    // thread-safely copies to send buffer, returns false if buffer still has unsent data
+    bool queueSend(std::string_view data);
+
+    void getReceiveBuffer(std::string& data);
 
     // thread-safely copies data from the receive buffer, then marks it as empty
     size_t getReceiveBuffer(char* dstBuffer, const size_t& dstBufferSize);
 
     // forces the stream thread to shut down
-    void terminateThread() { forceTerminate = true; }
+    void stop() { forceTerminate = true; }
+
+protected:
+    void threadMain();
+    std::thread thread{};
+    double connectTimeout = 1.0;
+    std::atomic<bool> streamConnected = false;
+    std::atomic<bool> connectionFailure = false;
+    std::atomic<bool> forceTerminate = false;
+
+    Sockets::MutexSocket socket;
+    NetBuffer recvBuffer, sendBuffer;
+    std::string hostname, port;
 };
 
 

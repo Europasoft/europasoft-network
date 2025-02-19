@@ -1,21 +1,13 @@
 #pragma once
-#include "NetAgent/Server.h"
-#include <iostream>
+#include <string>
 
-class ChatClient
-{
-#ifdef NET_SERVER_ONLY
-	Server agent{};
-#else
-	Client agent{};
-#endif
-
-public:
-	// hostname only applies for client (ignored when compiling server)
-	void connect(const std::string& port, const std::string& hostname);
-	bool connected() const { return agent.isConnected(); }
-	bool failed() const { return agent.connectionFailed(); }
-	bool sendString(const std::string& str);
-	std::string receiveString(const uint32_t& retryMaxAttempts = 100);
-};
+//class ChatClient
+//{
+//	void connect(const std::string& port, const std::string& hostname);
+//	bool connected(size_t i) const { return agent.isConnected(i); }
+//	bool failed(size_t i) const { return agent.connectionFailed(i); }
+//	bool sendString(size_t i, const std::string& str);
+//	std::string receiveString(size_t i, const uint32_t& retryMaxAttempts = 100);
+//	StreamThread& getConnection(size_t i) { return *agent.getConnection(i).get(); }
+//};
 

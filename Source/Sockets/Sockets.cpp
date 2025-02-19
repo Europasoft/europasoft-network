@@ -49,7 +49,7 @@ namespace Sockets
         if (!resolveHostname(hostname, false, hostAddr, port, true)) { return false; }
         SOCKET s = INVALID_SOCKET;
         bool cr = connectSocket(hostAddr, s);
-        //freeaddrinfo(hostAddr);
+        freeaddrinfo(hostAddr); // TODO: why was this commented out before?
         socketOut = s;
         return cr;
     }
@@ -59,34 +59,29 @@ namespace Sockets
         return send(s, data, dataSize, 0) != SOCKET_ERROR;
     }
 
-    bool listenSocket(SOCKET& s, const std::string& port)
+    bool createListenSocket(SOCKET& s, const std::string& port)
     {
         addrinfo* p = nullptr;
         if (!resolveHostname(std::string(), true, p, port, true, true)) { return false; }
-        SOCKET ls = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        setsockopt(ls, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(bool));
-        auto r_b = (bind(ls, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
-        auto r_l = (listen(ls, 1000) != SOCKET_ERROR);
+        s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        setsockopt(s, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(bool));
+        auto bound = (bind(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
+        auto listening = (listen(s, 100) != SOCKET_ERROR);
         freeaddrinfo(p);
-        if (!r_b || !r_l || ls == INVALID_SOCKET) { close(ls); return false; }
-        s = ls;
+        if (!bound || !listening || s == INVALID_SOCKET) { closesocket(s); return false; }
         return true;
     }
 
-    RecStat::RecStat() : e{ RecStatE::NoOp } {};
-    RecStat::RecStat(const int64_t& r)
-    {
-        if (r < 0) { e = RecStatE::Error; }
-        else if (r == 0) { e = RecStatE::ConnectionClosed; }
-        else {  size = r; e = RecStatE::Success; }
+    int32_t receiveData(SOCKET& s, char* outBuffer, size_t bufSize)
+    { 
+        return recv(s, outBuffer, bufSize, MSG_WAITALL); 
     }
 
-    RecStat receiveData(SOCKET& s, char* outBuffer, size_t bufSize)
-    { return RecStat(recv(s, outBuffer, bufSize, MSG_WAITALL)); }
-
-    RecStat receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
+    int32_t receiveData_CL(SOCKET& s, char& outBuffer, const size_t& bufSize,
                     sockaddr& srcAddrOut, size_t& srcAddrLenOut)
-    { return RecStat(recvfrom(s, &outBuffer, bufSize, 0, &srcAddrOut, (socklen_t*)&srcAddrLenOut)); }
+    { 
+        return recvfrom(s, &outBuffer, bufSize, 0, &srcAddrOut, (socklen_t*)&srcAddrLenOut); 
+    }
 
     long getReceiveSize(SOCKET s)
     {
@@ -100,11 +95,21 @@ namespace Sockets
         return (long)len; // return at least 0
     }
 
-    bool shutdownConnection(const SOCKET& s, int flag) 
-    { return shutdown(s, flag) != SOCKET_ERROR; }
+    int32_t setBlocking(SOCKET s, bool block) 
+    {
+        int nonBlocking = !block;
+        int r = SOCKET_ERROR;
+#ifdef _WIN32
+        r = ioctlsocket(s, FIONBIO, (unsigned long*)&nonBlocking);
+#else
+        r = ioctl(s, FIONBIO, &nonBlocking);
+#endif
+        return r;
+    }
 
-    void closeSocket(SOCKET s) 
-    { if (s != INVALID_SOCKET) { close(s); } }
+    bool shutdownConnection(const SOCKET& s, int flag) { return shutdown(s, flag) != SOCKET_ERROR; }
+
+    void closeSocket(SOCKET s) { if (s != INVALID_SOCKET) { close(s); } }
 
     std::string getAddrAsString(addrinfo* ai)
     {

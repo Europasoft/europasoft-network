@@ -6,31 +6,44 @@
 // data buffer wrapper, with built-in mutex management for multi-threaded access
 class NetBuffer
 {
-    char* buffer = nullptr;
-    size_t bufferSize = 0; // current buffer size, may be partially filled
-    size_t dataSize = 0; // size of data currently in buffer, less or equal to buffer size
 public:
-    std::recursive_mutex m;
-    const size_t bufMax;
-    NetBuffer();
-    NetBuffer(const size_t& allocSize);
-    NetBuffer(const size_t& allocSize, const size_t& max_);
-    NetBuffer(NetBuffer&& src) noexcept; // move ctor
-    NetBuffer(const NetBuffer& src); // copy ctor
+	using Lock = std::unique_lock<std::recursive_mutex>; // syntactic sugar
+	NetBuffer(size_t allocSize = 0);
+    NetBuffer(NetBuffer&& src) noexcept;
+    NetBuffer(const NetBuffer& src);
     ~NetBuffer();
-    void realloc(const size_t& newSize);
-    // threadsafe, sets the reported size of data in buffer
-    void setDataSize(const size_t& newSize);
 
-    // ensures thread safety by locking the mutex (may block if already locked by another thread)
-    _Acquires_lock_(lock) char* getBuffer(std::unique_lock<std::recursive_mutex>& lock)
+	// expands the allocation size if necessary, returns true if buffer size is >= newSize
+	bool reserve(size_t newSize, const Lock& lock);
+
+	// fills this buffer with data, expanding the buffer if necessary, buffer must be empty
+	bool copyFrom(const char* data, size_t size, const Lock& lock);
+
+    // threadsafe, sets the reported size of data in buffer
+    void setDataSize(size_t newSize);
+
+    /* ensures thread safety by locking the mutex (may block if already locked by another thread)
+		mutex will unlock when the lock object is destroyed */
+    _Acquires_lock_(lock) char* getBuffer(Lock& lock)
     {
-        lock = std::move(std::unique_lock<std::recursive_mutex>(m)); return buffer;
-    } // mutex will unlock when lock object is destroyed
+		lock = std::move(Lock(m));
+		return buffer;
+    }
 
 	// getters (will not block)
-    const size_t& getDataSize() const { return dataSize; }
-    const size_t& getBufferSize() const { return bufferSize; }
+    size_t getDataSize() const { return dataSize; }
+    size_t getBufferSize() const { return bufferSize; }
+	static size_t getBufMax();
+
+protected:
+	char* buffer = nullptr;
+	size_t bufferSize = 0; // current buffer size, may be partially filled
+	size_t dataSize = 0; // size of data currently in buffer, <= bufferSize
+
+	std::recursive_mutex m;
+	void free();
+
+	bool verifyLock(const Lock& lock) const { return lock.owns_lock() && lock.mutex() == &m; }
 };
 
 class Timer
@@ -45,7 +58,7 @@ public:
 		std::chrono::duration<double, std::milli> ms = (clock::now() - startTime);
 		return (ms.count() / 1000.0);
 	}
-	bool checkTimeout(const double& max) 
+	bool checkTimeout(double max) 
 	{
 		if (getElapsed() >= max) 
 		{ 

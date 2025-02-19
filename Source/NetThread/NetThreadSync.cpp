@@ -1,41 +1,77 @@
 #include "NetThreadSync.h"
 #include "Sockets/Sockets.h"
+#include <limits>
 #include <cassert>
 
-NetBuffer::NetBuffer() : bufMax{ SIZE_MAX } {};
-NetBuffer::NetBuffer(const size_t& allocSize) : bufMax{ SIZE_MAX } { realloc(allocSize); }
-NetBuffer::NetBuffer(const size_t& allocSize, const size_t& max_) : bufMax{ max_ } { realloc(allocSize); }
-NetBuffer::NetBuffer(NetBuffer&& src) noexcept : bufMax{ src.bufMax }
+NetBuffer::NetBuffer(size_t allocSize)
+{
+    std::unique_lock<std::recursive_mutex> lock;
+    getBuffer(lock);
+    reserve(allocSize, lock);
+}
+
+NetBuffer::NetBuffer(NetBuffer&& src) noexcept
 {
     buffer = src.buffer;
     bufferSize = src.bufferSize;
     dataSize = src.dataSize;
     src.buffer = nullptr;
-    src.dataSize = 0;
+    src.bufferSize = src.dataSize = 0;
 }
-NetBuffer::NetBuffer(const NetBuffer& src) : bufMax{ src.bufMax }
+
+NetBuffer::NetBuffer(const NetBuffer& src)
 {
-    dataSize = 0;
-    realloc(src.bufferSize);
-    memcpy(buffer, src.buffer, src.bufferSize);
-    dataSize = src.dataSize;
-    bufferSize = src.bufferSize;
+    if (!src.buffer && !src.dataSize && !src.bufferSize) { return; }
+    std::unique_lock<std::recursive_mutex> lock;
+    getBuffer(lock);
+    reserve(src.bufferSize, lock);
+    copyFrom(src.buffer, src.dataSize, lock);
 }
-NetBuffer::~NetBuffer() { if (buffer) { delete[] buffer; } }
-void NetBuffer::realloc(const size_t& newSize)
-{
-    assert(newSize > 0 && newSize <= bufMax && (newSize <= dataSize || dataSize == 0) && "invalid buffer size");
-    if (newSize == 0 || bufferSize == newSize) { return; }
-    Sockets::Lock bl; getBuffer(bl); // lock mutex to safely modify the buffer
-    bufferSize = min(newSize, bufMax);
-    auto* dst = new char[bufferSize];
-    if (dataSize > 0 && buffer) { memcpy(dst, buffer, dataSize); }
+
+NetBuffer::~NetBuffer() 
+{ 
+    free();
+}
+
+void NetBuffer::free()
+{ 
     if (buffer) { delete[] buffer; }
-    buffer = dst;
+    buffer = nullptr;
+    bufferSize = dataSize = 0;
 }
-void NetBuffer::setDataSize(const size_t& newSize)
+
+size_t NetBuffer::getBufMax() { return (std::numeric_limits<size_t>::max)(); }
+
+bool NetBuffer::reserve(size_t newSize, const Lock& lock)
 {
-    Sockets::Lock bl; getBuffer(bl);
+    assert(verifyLock(lock));
+    if (newSize > getBufMax()) { return false; }
+    if (newSize <= bufferSize) { return true; }
+    // allocate a new buffer, copy existing data (if any), replace old buffer
+    auto* newBuffer = new char[newSize]; 
+    memcpy(newBuffer, buffer, dataSize);
+    if (buffer) { delete[] buffer; }
+    buffer = newBuffer;
+    bufferSize = newSize;
+    return true;
+}
+
+bool NetBuffer::copyFrom(const char* data, size_t size, const Lock& lock)
+{
+    assert(verifyLock(lock));
+    assert(!dataSize && "copying into buffer would overwrite existing data");
+    if (dataSize || !data || !size) { return false; }
+
+    if (!reserve(size, lock)) { return false; }
+    memcpy(buffer, data, size);
+    dataSize = size;
+    return true;
+}
+
+void NetBuffer::setDataSize(size_t newSize)
+{
+    Sockets::Lock lock; 
+    getBuffer(lock);
     dataSize = newSize;
 };
 

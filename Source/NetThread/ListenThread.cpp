@@ -2,10 +2,13 @@
 #include "StreamThread.h"
 #include <cassert>
 
-ListenThread::ListenThread(StreamThread& streamThread) : streamThreadPtr{ &streamThread } {};
-ListenThread::~ListenThread() { terminateThread(); }
+ListenThread::~ListenThread() 
+{ 
+    stop();
+    thread.join();
+}
 
-void ListenThread::start(const std::string& port)
+void ListenThread::start(std::string_view port)
 {
     listenPort = port;
     assert(!listenPort.empty() && "valid port number must be provided for listen socket");
@@ -14,24 +17,30 @@ void ListenThread::start(const std::string& port)
 
 void ListenThread::threadMain()
 {
-    bool terminate = false;
-
     SOCKET listenSocket = INVALID_SOCKET;
-    // create listen socket
-    if (!Sockets::listenSocket(listenSocket, listenPort)) { terminate = true; }
+    forceTerminate = !Sockets::createListenSocket(listenSocket, listenPort);
 
-    // listener loop (currently only accepts the first connection request)
-    while (!terminate)
+    // listener loop
+    while (!forceTerminate)
     {
-        if (!streamThreadPtr->isStreamConnected())
-        {
-            SOCKET s = accept(listenSocket, nullptr, nullptr); // try to accept a connection
-            if (s == INVALID_SOCKET) { continue; }
-            streamThreadPtr->start(s); // hand over the connected socket
-            terminateThread(); // TODO: support multiple connections
-        }
-        terminate = forceTerminate || terminate;
+        SOCKET s = accept(listenSocket, nullptr, nullptr); // try to accept a connection
+        if (s != INVALID_SOCKET) { addConnectedSocket(s); }
     }
     Sockets::closeSocket(listenSocket);
-    // thread terminates at this point
+}
+
+void ListenThread::addConnectedSocket(SOCKET s) 
+{
+    auto lock = Lock(connSocketsMutex);
+    connSockets.push_back(s);
+}
+
+std::vector<SOCKET> ListenThread::getConnectedSockets()
+{
+    auto lock = Lock(connSocketsMutex, std::try_to_lock);
+    if (!lock.owns_lock() || connSockets.empty()) { return std::vector<SOCKET>(); }
+
+    std::vector<SOCKET> outSockets = connSockets;
+    connSockets.clear();
+    return outSockets;
 }
