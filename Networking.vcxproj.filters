@@ -13,19 +13,10 @@
     <Filter Include="Source\NetThread">
       <UniqueIdentifier>{3ca2d3fb-cec1-4e03-8410-4d7574118cb3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Example">
-      <UniqueIdentifier>{28e5f5e3-72c0-4315-a779-169ef448b722}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Sockets\Sockets.cpp">
       <Filter>Source\Sockets</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NetAgent\Client.cpp">
-      <Filter>Source\NetAgent</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\NetAgent\Server.cpp">
-      <Filter>Source\NetAgent</Filter>
     </ClCompile>
     <ClCompile Include="Source\Networking.cpp">
       <Filter>Source</Filter>
@@ -39,19 +30,13 @@
     <ClCompile Include="Source\NetThread\StreamThread.cpp">
       <Filter>Source\NetThread</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Example\Example.cpp">
-      <Filter>Source\Example</Filter>
+    <ClCompile Include="Source\NetAgent\Agent.cpp">
+      <Filter>Source\NetAgent</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Sockets\Sockets.h">
       <Filter>Source\Sockets</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NetAgent\Client.h">
-      <Filter>Source\NetAgent</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\NetAgent\Server.h">
-      <Filter>Source\NetAgent</Filter>
     </ClInclude>
     <ClInclude Include="Source\Sockets\PlatformMacros.h">
       <Filter>Source\Sockets</Filter>
@@ -65,8 +50,8 @@
     <ClInclude Include="Source\NetThread\StreamThread.h">
       <Filter>Source\NetThread</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Example\Example.h">
-      <Filter>Source\Example</Filter>
+    <ClInclude Include="Source\NetAgent\Agent.h">
+      <Filter>Source\NetAgent</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

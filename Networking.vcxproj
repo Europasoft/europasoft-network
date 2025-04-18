@@ -35,9 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Example\Example.cpp" />
-    <ClCompile Include="Source\NetAgent\Client.cpp" />
-    <ClCompile Include="Source\NetAgent\Server.cpp" />
+    <ClCompile Include="Source\NetAgent\Agent.cpp" />
     <ClCompile Include="Source\NetThread\ListenThread.cpp" />
     <ClCompile Include="Source\NetThread\NetThreadSync.cpp" />
     <ClCompile Include="Source\NetThread\StreamThread.cpp" />
@@ -45,9 +43,7 @@
     <ClCompile Include="Source\Sockets\Sockets.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Example\Example.h" />
-    <ClInclude Include="Source\NetAgent\Client.h" />
-    <ClInclude Include="Source\NetAgent\Server.h" />
+    <ClInclude Include="Source\NetAgent\Agent.h" />
     <ClInclude Include="Source\NetThread\ListenThread.h" />
     <ClInclude Include="Source\NetThread\NetThreadSync.h" />
     <ClInclude Include="Source\NetThread\StreamThread.h" />
@@ -230,7 +226,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -243,7 +240,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;NET_SERVER_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -258,7 +256,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -275,7 +274,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NET_SERVER_ONLY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>%USERPROFILE%/source/repos/Networking/Source;%USERPROFILE%/repos/Networking/Source</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
