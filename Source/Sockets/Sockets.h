@@ -5,7 +5,11 @@
 	#include <ws2tcpip.h>
 	#pragma comment(lib, "Ws2_32.lib")
 #else
-	// TODO: gnu/linux includes
+	#include <sys/socket.h>
+	#include <sys/ioctl.h>
+	#include <netdb.h>
+	#include <unistd.h>
+	#include <arpa/inet.h>
 #endif
 // contains macros to enable cross-compilation of socket code
 #include "PlatformMacros.h" 
@@ -79,7 +83,10 @@ namespace Sockets
 			pr.initialized = false;
 		}
 		// ensures thread safety by locking the mutex (may block)
-		_Acquires_lock_(lock) const SOCKET& get(Lock& lock)
+#ifdef _Acquires_lock_()
+		_Acquires_lock_(lock) 
+#endif
+		const SOCKET& get(Lock& lock)
 		{
 			// tries to lock the mutex, which blocks (waits) here if mutex is locked by another thread (socket in use) 
 			lock = std::move(std::unique_lock<std::recursive_mutex>(m)); // mutex will unlock when lock object is destroyed

@@ -4,10 +4,6 @@
 #include <vector>
 #include <string>
 
-#ifndef _Acquires_lock_()
-#define _Acquires_lock_()
-#endif
-
 // TCP server connection listener op thread class
 class ListenThread
 {

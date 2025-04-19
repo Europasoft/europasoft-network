@@ -1,8 +1,7 @@
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>
-
-#include <iostream> // tmp
+#include <cstring>
 
 StreamThread::StreamThread(size_t sendBufferSize, size_t receiveBufferSize)
     : sendBuffer{ sendBufferSize }, recvBuffer{ receiveBufferSize } {}

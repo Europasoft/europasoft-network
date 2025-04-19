@@ -14,13 +14,10 @@
 		#define SOCKET_ERROR -1
 	#endif
 #endif
-#ifndef _Acquires_lock_()
-	#define _Acquires_lock_()
-#endif
 
 #ifndef max
-#define max(a,b)	(((a) > (b)) ? (a) : (b))
+	#define max(a,b)	(((a) > (b)) ? (a) : (b))
 #endif
 #ifndef min
-#define min(a,b)	(((a) < (b)) ? (a) : (b))
+	#define min(a,b)	(((a) < (b)) ? (a) : (b))
 #endif

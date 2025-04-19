@@ -24,7 +24,10 @@ public:
 
     /* ensures thread safety by locking the mutex (may block if already locked by another thread)
 		mutex will unlock when the lock object is destroyed */
-    _Acquires_lock_(lock) char* getBuffer(Lock& lock)
+#ifdef _Acquires_lock_()
+	_Acquires_lock_(lock)
+#endif 
+	char* getBuffer(Lock& lock)
     {
 		lock = std::move(Lock(m));
 		return buffer;

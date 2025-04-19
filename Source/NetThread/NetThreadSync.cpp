@@ -2,6 +2,7 @@
 #include "Sockets/Sockets.h"
 #include <limits>
 #include <cassert>
+#include <cstring>
 
 NetBuffer::NetBuffer(size_t allocSize)
 {

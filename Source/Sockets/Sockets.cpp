@@ -1,5 +1,7 @@
 #include "Sockets.h"
 #include <cassert>
+#include <cstring>
+#include <string>
 namespace Sockets
 {
 #ifdef _WIN32
@@ -68,7 +70,7 @@ namespace Sockets
         auto bound = (bind(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
         auto listening = (listen(s, 100) != SOCKET_ERROR);
         freeaddrinfo(p);
-        if (!bound || !listening || s == INVALID_SOCKET) { closesocket(s); return false; }
+        if (!bound || !listening || s == INVALID_SOCKET) { closeSocket(s); return false; }
         return true;
     }
 
