@@ -1,5 +1,3 @@
-# net-rpg
-Multithreaded, cross-platform (Windows/Linux) high-performance C++ networking library
-
-The goal for this API is to have a minimal cross-compilable codebase that is easy to integrate with other projects, and which provides identical perfomance for both Windows and UNIX systems.
-Windows-Server to Windows-Client is at a stable alpha version. Linux interop is currently untested and requires minor modifications.
+Multithreaded, cross-platform, high-performance C++ networking library.
+All functionality is available for both Windows and Linux (Visual Studio or Clang).
+Networking.cpp contains a simple TCP chat example. Compile it with NET_SERVER_ONLY defined to run in server mode.
