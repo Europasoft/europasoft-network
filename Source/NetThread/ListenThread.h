@@ -12,7 +12,7 @@ public:
     ListenThread() = default;
     ~ListenThread();
 
-    void start(std::string_view port);
+    void start(std::string_view port, std::string_view hostname);
     
     void stop() { forceTerminate = true; } // forces the listen thread to shut down
 
@@ -22,9 +22,11 @@ protected:
     void threadMain();
     std::thread thread;
     std::string listenPort{};
+	std::string selfHostname{};
     std::atomic<bool> forceTerminate = false; // may be set by other thread
     
     void addConnectedSocket(SOCKET s);
+	size_t getNumNewlyConnected(); // returns number of new connections
     std::vector<SOCKET> connSockets; // socket connections ready to hand over
     std::recursive_mutex connSocketsMutex;
 };

@@ -2,6 +2,7 @@
 #include "Sockets/Sockets.h"
 #include "NetThread/NetThreadSync.h"
 #include <thread>
+#include <chrono>
 
 #ifndef _Acquires_lock_()
 #define _Acquires_lock_()
@@ -44,6 +45,7 @@ protected:
     Sockets::MutexSocket socket;
     NetBuffer recvBuffer, sendBuffer;
     std::string hostname, port;
+	Timer lastComTimer;
 };
 
 

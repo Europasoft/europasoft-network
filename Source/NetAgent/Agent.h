@@ -47,7 +47,7 @@ public:
     size_t connect(std::string_view hostname, std::string_view port);
 
     // begin accepting connections, server mode only
-    void listen(std::string_view port);
+    void listen(std::string_view port, std::string_view hostname = std::string());
     // stop accepting connections, server mode only
     void stopListening();
 
@@ -55,6 +55,8 @@ public:
     size_t numConnections();
     
     bool isServer() const { return listenThread.get(); }
+
+	size_t connectionLimit = 100;
     
 protected:
     std::vector<Connection> connections;

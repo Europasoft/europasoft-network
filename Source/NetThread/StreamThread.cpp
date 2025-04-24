@@ -61,6 +61,8 @@ void StreamThread::threadMain()
         }
     }
 
+	lastComTimer.start();
+
     // thread main loop
     while (!terminate)
     {
@@ -72,7 +74,8 @@ void StreamThread::threadMain()
             if (Sockets::sendData(s, sendBuffer.getBuffer(bufferLock), sendBuffer.getDataSize()))
             { 
                 sendBuffer.setDataSize(0); // data sent, mark empty
-            } 
+            }
+			lastComTimer.start();
         }
 
         // receive
@@ -83,15 +86,27 @@ void StreamThread::threadMain()
             auto recvSize = Sockets::getReceiveSize(s);
             if (recvSize > 0)
             {
-                Lock bufferLock;
-                auto* buffer = recvBuffer.getBuffer(bufferLock);
-                recvBuffer.reserve(recvSize, bufferLock);
-                recvSize = Sockets::receiveData(s, buffer, recvSize);
-                recvBuffer.setDataSize(recvSize);
+				// end the connection if the network buffer grows too large
+				if (recvSize > 5e7)
+				{
+					terminate = true;
+				}
+				else
+				{
+					Lock bufferLock;
+					auto* buffer = recvBuffer.getBuffer(bufferLock);
+					recvBuffer.reserve(recvSize, bufferLock);
+					recvSize = Sockets::receiveData(s, buffer, recvSize);
+					recvBuffer.setDataSize(recvSize);
+					lastComTimer.start();
+				}
 
                 if (recvSize == 0) { terminate = true; } // connection closed
             }
         }
+		
+		if (lastComTimer.getElapsed() > 3.f)
+			Sockets::threadSleep(50); // idle the thread if no communication has happened in a while
         
         terminate = forceTerminate || terminate;
     }

@@ -40,7 +40,7 @@ namespace Sockets
 	// sends data over a socket
 	bool sendData(SOCKET& s, const char* data, const size_t& dataSize);
 
-	bool createListenSocket(SOCKET& s, const std::string& port);
+	bool createListenSocket(SOCKET& s, const std::string& port, const std::string& hostname = std::string());
 
 	// receive (TCP), this is a blocking call
 	int32_t receiveData(SOCKET& s, char* outBuffer, size_t bufSize);
@@ -62,6 +62,8 @@ namespace Sockets
 	void closeSocket(SOCKET s);
 
 	std::string getAddrAsString(addrinfo* ai);
+
+	void threadSleep(int milliseconds);
 
 	// threadsafe socket handle, auto-closing
 	class MutexSocket 

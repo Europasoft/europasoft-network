@@ -2,6 +2,8 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <thread>
+#include <chrono>
 namespace Sockets
 {
 #ifdef _WIN32
@@ -61,10 +63,10 @@ namespace Sockets
         return send(s, data, dataSize, 0) != SOCKET_ERROR;
     }
 
-    bool createListenSocket(SOCKET& s, const std::string& port)
+    bool createListenSocket(SOCKET& s, const std::string& port, const std::string& hostname)
     {
         addrinfo* p = nullptr;
-        if (!resolveHostname(std::string(), true, p, port, true, true)) { return false; }
+        if (!resolveHostname(hostname, true, p, port, true, true)) { return false; }
         s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         setsockopt(s, SOL_SOCKET, IPV6_V6ONLY, 0, sizeof(bool));
         auto bound = (bind(s, p->ai_addr, (socklen_t)p->ai_addrlen) != SOCKET_ERROR);
@@ -122,5 +124,9 @@ namespace Sockets
         std::string str = std::string(addrStr, strlen(addrStr));
         delete[] addrStr;
         return str;
+    }
+    void threadSleep(int milliseconds)
+    {
+		std::this_thread::sleep_for(std::chrono::duration<long long, std::milli>(milliseconds));
     }
 }

@@ -20,10 +20,10 @@ size_t Agent::connect(std::string_view hostname, std::string_view port)
 	return connections.size() - 1;
 }
 
-void Agent::listen(std::string_view port) 
+void Agent::listen(std::string_view port, std::string_view hostname)
 { 
 	assert(isServer());
-	listenThread->start(port); 
+	listenThread->start(port, hostname);
 }
 
 void Agent::stopListening()
@@ -48,12 +48,18 @@ void Agent::updateConnections()
 {
 	if (!isServer()) { return; }
 	auto sockets = listenThread->getConnectedSockets();
-	for (auto s : sockets) { connections.push_back(Connection(s)); }
+	for (auto s : sockets)
+	{ 
+		if (connections.size() < connectionLimit)
+			connections.push_back(Connection(s));
+		else
+			Sockets::shutdownConnection(s, 2); // drop connections if limit is exceeded
+	}
 }
 
 
 Connection::Connection(SOCKET connectedSocket) 
-	: thread{ std::make_unique<StreamThread>(256, 256) }
+	: thread{ std::make_unique<StreamThread>(2048, 2048) }
 {
 	thread->start(connectedSocket);
 }
