@@ -1,3 +1,5 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
+
 // The example functions are defined in these files
 #include "Examples/TcpChatExample.h"
 #include "Examples/SimpleHttpServerExample.h"

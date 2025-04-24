@@ -1,3 +1,4 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "Sockets.h"
 #include <cassert>
 #include <cstring>

@@ -1,3 +1,4 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "StreamThread.h"
 #include <cassert>
 #include <limits.h>

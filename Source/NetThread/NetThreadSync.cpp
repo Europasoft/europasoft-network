@@ -1,3 +1,4 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "NetThreadSync.h"
 #include "Sockets/Sockets.h"
 #include <limits>

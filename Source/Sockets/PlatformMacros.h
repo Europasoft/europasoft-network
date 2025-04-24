@@ -1,3 +1,4 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #ifdef _WIN32
 	#define close(s) closesocket(s)
 #else

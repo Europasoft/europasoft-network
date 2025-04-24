@@ -1,3 +1,4 @@
+// Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #pragma once
 // dependencies
 #ifdef _WIN32
