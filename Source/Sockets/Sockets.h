@@ -27,6 +27,7 @@ namespace Sockets
 
 	bool init();
 	bool cleanup();
+	size_t& socketsInitCounter();
 
 	// resolves address from hostname, remember to use freeaddrinfo() on the result, empty hostname returns localhost
 	bool resolveHostname(const std::string& hostname, bool numericHost, addrinfo*& addrOut,

@@ -8,12 +8,28 @@
 namespace Sockets
 {
 #ifdef _WIN32
-    bool init() { WSADATA wsaData; return WSAStartup(MAKEWORD(2, 2), &wsaData) == 0; }
-    bool cleanup() { return WSACleanup() == 0; }
+    bool init()
+	{
+		socketsInitCounter()++;
+		if (socketsInitCounter() > 1)
+			return true;
+		WSADATA wsaData;
+		return WSAStartup(MAKEWORD(2, 2), &wsaData) == 0;
+	}
+    bool cleanup() 
+	{
+		socketsInitCounter() -= (socketsInitCounter() > 0) ? 1 : 0;
+		return (socketsInitCounter() < 1) ? WSACleanup() == 0 : true;
+	}
 #else
     bool init() { return true; }
     bool cleanup() { return true; }
 #endif
+	size_t& socketsInitCounter()
+	{
+		static size_t count = 0;
+		return count;
+	}
 
     bool resolveHostname(const std::string& hostname, bool numericHost, addrinfo*& addrOut, 
                         const std::string& port, bool numericPort, bool listenSocket)
