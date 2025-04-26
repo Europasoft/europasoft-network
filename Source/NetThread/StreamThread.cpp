@@ -96,10 +96,16 @@ void StreamThread::threadMain()
 				{
 					Lock bufferLock;
 					auto* buffer = recvBuffer.getBuffer(bufferLock);
-					recvBuffer.reserve(recvSize, bufferLock);
-					recvSize = Sockets::receiveData(s, buffer, recvSize);
-					recvBuffer.setDataSize(recvSize);
-					lastComTimer.start();
+					if (recvBuffer.reserve(recvSize, bufferLock))
+					{
+						recvSize = Sockets::receiveData(s, buffer, recvSize);
+						recvBuffer.setDataSize(recvSize);
+						lastComTimer.start();
+					}
+					else
+					{
+						terminate = true;
+					}
 				}
 
                 if (recvSize == 0) { terminate = true; } // connection closed

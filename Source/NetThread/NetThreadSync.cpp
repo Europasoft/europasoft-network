@@ -51,7 +51,10 @@ bool NetBuffer::reserve(size_t newSize, const Lock& lock)
     if (newSize <= bufferSize) { return true; }
     // allocate a new buffer, copy existing data (if any), replace old buffer
     auto* newBuffer = new char[newSize]; 
-    memcpy(newBuffer, buffer, dataSize);
+	if (not newBuffer)
+		return false;
+	if (dataSize > 0 && buffer && dataSize <= newSize)
+		memcpy(newBuffer, buffer, dataSize);
     if (buffer) { delete[] buffer; }
     buffer = newBuffer;
     bufferSize = newSize;
