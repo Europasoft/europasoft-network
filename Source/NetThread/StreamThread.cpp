@@ -37,6 +37,7 @@ void StreamThread::start(SOCKET socket_)
 
 void StreamThread::threadMain()
 {
+	WIN_SET_THREAD_NAME(L"Stream Thread");
     bool terminate = false;
 
     // resolve hostname and connect (client mode only)
@@ -132,10 +133,15 @@ bool StreamThread::queueSend(std::string_view data)
 
 void StreamThread::getReceiveBuffer(std::string& data) 
 {
-    if (recvBuffer.getBufferSize() <= 0) { return; }
+    if (recvBuffer.getDataSize() <= 0) { return; }
     Lock lock;
     data = std::string(recvBuffer.getBuffer(lock), recvBuffer.getDataSize());
     recvBuffer.setDataSize(0);
+}
+
+size_t StreamThread::getReceiveDataSize() const
+{
+	return recvBuffer.getDataSize();
 }
 
 size_t StreamThread::getReceiveBuffer(char* dstBuffer, const size_t& dstBufferSize)

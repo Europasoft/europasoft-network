@@ -46,10 +46,10 @@ int tcpChatExample()
 		askFor(hostname, "localhost", "Enter hostname (leave blank for local): ");
 		askFor(port, "5001", "Enter port (leave blank for default): ");
 		std::cout << "\nConnecting to server...";
-		auto i = agent.connect(hostname, port);
-		while (not agent.getConnection(i).isConnected() and not agent.getConnection(i).isFailed())
+		Connection& connection = agent.connect(hostname, port);
+		while (not connection.isConnected() and not connection.isFailed())
 			Sockets::threadSleep(10);
-		if (agent.getConnection(i).isFailed())
+		if (connection.isFailed())
 		{
 			std::cout << "\nConnection failed";
 			std::cin.ignore();

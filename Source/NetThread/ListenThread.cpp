@@ -21,6 +21,7 @@ void ListenThread::start(std::string_view port, std::string_view hostname)
 
 void ListenThread::threadMain()
 {
+	WIN_SET_THREAD_NAME(L"Listen Thread");
     SOCKET listenSocket = INVALID_SOCKET;
     forceTerminate = !Sockets::createListenSocket(listenSocket, listenPort, selfHostname);
 	

@@ -28,6 +28,7 @@ public:
     bool queueSend(std::string_view data);
 
     void getReceiveBuffer(std::string& data);
+	size_t getReceiveDataSize() const;
 
     // thread-safely copies data from the receive buffer, then marks it as empty
     size_t getReceiveBuffer(char* dstBuffer, const size_t& dstBufferSize);

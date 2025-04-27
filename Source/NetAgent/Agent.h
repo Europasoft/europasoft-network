@@ -9,6 +9,8 @@
 class StreamThread;
 class ListenThread;
 
+typedef size_t ConnectionId;
+
 class Connection
 {
 public:
@@ -21,10 +23,13 @@ public:
 
     bool send(std::string_view data);
     void receive(std::string& data);
+	size_t getIncomingDataSize() const;
 
 private:
     std::unique_ptr<StreamThread> thread;
 };
+
+
 
 /* CLIENT
 * 1. Initialize, resolve host address
@@ -44,16 +49,18 @@ public:
     Agent(Mode mode);
     ~Agent();
 
-    // establish TCP connection to a remote host, returns the index of the new connection
-    size_t connect(std::string_view hostname, std::string_view port);
+    // establish TCP connection to a remote host, returns a handle to the new connection
+	Connection& connect(std::string_view hostname, std::string_view port);
 
     // begin accepting connections, server mode only
     void listen(std::string_view port, std::string_view hostname = std::string());
     // stop accepting connections, server mode only
     void stopListening();
 
-    Connection& getConnection(size_t i);
-    size_t numConnections();
+    Connection& getConnection(ConnectionId id);
+    size_t numConnections() const;
+	bool updateConnections();
+	std::vector<Connection>& getAllConnections();
     
     bool isServer() const { return listenThread.get(); }
 
@@ -62,5 +69,5 @@ public:
 protected:
     std::vector<Connection> connections;
     std::unique_ptr<ListenThread> listenThread;
-    void updateConnections();
+    
 };

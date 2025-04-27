@@ -42,7 +42,8 @@ int simpleHttpServerExample(const std::string& htmlFilePath, const std::string& 
 	Agent agent{ Agent::Mode::Server };
 	agent.listen("80", "127.0.0.1");
 	std::cout << "\Listening for browser connections";
-	while (agent.numConnections() == 0) { Sockets::threadSleep(300); };
+	while (agent.updateConnections() and agent.numConnections() == 0)
+		Sockets::threadSleep(300);;
 	std::cout << "\nClient connected";
 
 	for (;;)

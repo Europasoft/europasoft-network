@@ -3,6 +3,7 @@
 #include "NetThread/StreamThread.h"
 #include "NetThread/ListenThread.h"
 #include "Sockets/Sockets.h"
+#include <algorithm>
 
 Agent::Agent(Mode mode)
 {
@@ -15,10 +16,10 @@ Agent::~Agent()
 	Sockets::cleanup(); 
 }
 
-size_t Agent::connect(std::string_view hostname, std::string_view port)
+Connection& Agent::connect(std::string_view hostname, std::string_view port)
 {
 	connections.push_back(Connection(hostname, port));
-	return connections.size() - 1;
+	return connections.back();
 }
 
 void Agent::listen(std::string_view port, std::string_view hostname)
@@ -33,29 +34,35 @@ void Agent::stopListening()
 	listenThread->stop(); 
 }
 
-Connection& Agent::getConnection(size_t i) 
+Connection& Agent::getConnection(ConnectionId id)
 { 
-	updateConnections();
-	return connections[i]; 
+	return connections[id]; 
 }
 
-size_t Agent::numConnections()
+size_t Agent::numConnections() const
 {
-	updateConnections();
 	return connections.size();
 }
 
-void Agent::updateConnections()
+bool Agent::updateConnections()
 {
-	if (!isServer()) { return; }
+	assert(isServer() && "do not call update when in client mode");
+	if (not isServer())
+		return false;
 	auto sockets = listenThread->getConnectedSockets();
-	for (auto s : sockets)
+	for (SOCKET socket : sockets)
 	{ 
 		if (connections.size() < connectionLimit)
-			connections.push_back(Connection(s));
+			connections.push_back(Connection(socket));
 		else
-			Sockets::shutdownConnection(s, 2); // drop connections if limit is exceeded
+			Sockets::shutdownConnection(socket, 2); // drop connections if limit is exceeded
 	}
+	return true;
+}
+
+std::vector<Connection>& Agent::getAllConnections()
+{
+	return connections;
 }
 
 
@@ -96,8 +103,7 @@ void Connection::receive(std::string& data)
 	thread->getReceiveBuffer(data); 
 }
 
-
-
-
-
-
+size_t Connection::getIncomingDataSize() const
+{
+	return thread->getReceiveDataSize();
+}
