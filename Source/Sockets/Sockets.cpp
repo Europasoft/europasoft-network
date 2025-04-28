@@ -1,10 +1,12 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "Sockets.h"
+
 #include <cassert>
 #include <cstring>
 #include <string>
 #include <thread>
 #include <chrono>
+
 namespace Sockets
 {
 #ifdef _WIN32
@@ -130,7 +132,15 @@ namespace Sockets
 
     bool shutdownConnection(const SOCKET& s, int flag) { return shutdown(s, flag) != SOCKET_ERROR; }
 
-    void closeSocket(SOCKET s) { if (s != INVALID_SOCKET) { close(s); } }
+	void closeSocket(SOCKET s)
+	{ 
+		if (s != INVALID_SOCKET)
+#ifdef _WIN32
+		closesocket(s);
+#else
+		close(s);
+#endif
+	}
 
     std::string getAddrAsString(addrinfo* ai)
     {

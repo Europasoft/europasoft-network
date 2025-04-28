@@ -1,5 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #pragma once
+
 // dependencies
 #ifdef _WIN32
 	#include <winsock2.h>
@@ -12,13 +13,14 @@
 	#include <unistd.h>
 	#include <arpa/inet.h>
 #endif
+
 // contains macros to enable cross-compilation of socket code
 #include "PlatformMacros.h" 
 
 #include <string>
 #include <mutex>
-
 #include <iostream>
+
 
 namespace Sockets
 {
@@ -88,7 +90,7 @@ namespace Sockets
 		}
 		// ensures thread safety by locking the mutex (may block)
 #ifdef _Acquires_lock_()
-		_Acquires_lock_(lock) 
+	_Acquires_lock_(lock) 
 #endif
 		const SOCKET& get(Lock& lock)
 		{
