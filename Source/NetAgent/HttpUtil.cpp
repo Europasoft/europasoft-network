@@ -1,5 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "NetAgent/HttpServer.h"
+#include "NetAgent/HttpUtil.h"
 #include "NetAgent/Logging.h"
 
 #include <stdint.h>
@@ -70,12 +71,17 @@ namespace HTTP
 			std::pair<HttpMethodType, std::string>{ HttpMethodType::PATCH_M,	"PATCH" }
 		};
 
-	const std::string& httpStatusCodeToString(HttpStatusCode code)
+	std::string httpStatusCodeToString(HttpStatusCode code)
 	{
 		auto& mappings = StringEnumHelpers::httpStatusCodeMappings;
 		auto iterator = std::find_if(mappings.begin(), mappings.end(),
 			[&](const auto& p) { return (p.first == code); });
 		return (iterator != mappings.end()) ? (*iterator).second : "UNRECOGNIZED CODE";
+	}
+
+	bool httpStatusCodeIsError(HttpStatusCode code)
+	{
+		return static_cast<uint32_t>(code) >= 400;
 	}
 
 	HttpMethodType httpMethodFromString(std::string str)
@@ -153,6 +159,58 @@ namespace HTTP
 		t.seekg(0);
 		t.read(&buffer[0], size);
 		return buffer;
+	}
+
+	void HttpFilesystem::updateFullRefresh(std::string_view webRootPath)
+	{
+		ESLog::es_info("Refreshing filesystem paths under WebRoot");
+		webroot = webRootPath;
+		for (const auto& p : std::filesystem::recursive_directory_iterator(webRootPath))
+		{
+			if (not std::filesystem::is_directory(p))
+			{
+				const auto full = std::filesystem::weakly_canonical(webroot / p.path());
+				const auto rel = std::filesystem::relative(full, webRootPath);
+				if (full.is_relative() or (not full.is_absolute()) or rel.is_absolute() or (not rel.is_relative()))
+					continue;
+				allowedFilepaths.push_back(PathInfo
+					{
+						.relative = std::filesystem::relative(p.path(), webRootPath),
+						.full = std::filesystem::weakly_canonical(webroot / p.path())
+					});
+			}
+		}
+		ESLog::es_info("Completed gathering filesystem paths");
+	}
+
+	size_t HttpFilesystem::findFile(const std::filesystem::path& path) const
+	{
+		for (size_t i = 0; i < allowedFilepaths.size(); i++)
+		{
+			auto relativeNormalized = allowedFilepaths[i].relative.string();
+			std::replace(relativeNormalized.begin(), relativeNormalized.end(), '\\', '/');
+			relativeNormalized = "/" + relativeNormalized;
+			// TODO: this part doesn't work although paths seem to match - why?
+			if (allowedFilepaths[i].relative == path or relativeNormalized == path.string())
+				return i + 1;
+		}
+		return 0;
+	}
+
+	bool HttpFilesystem::getFileAsString(size_t id, std::string& contentOut) const
+	{
+		if (id < 1 or id > allowedFilepaths.size())
+		{
+			ESLog::es_error("Attempted to read file with bad id");
+			return false;
+		}
+		const auto& fullPath = allowedFilepaths[id - 1].full;
+
+		if (not (fullPath.is_absolute() and std::filesystem::is_regular_file(fullPath)))
+			return false;
+
+		contentOut = fileToString(fullPath);
+		return true;
 	}
 
 }

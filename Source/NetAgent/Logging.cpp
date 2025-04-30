@@ -96,7 +96,6 @@ namespace ESLog
 	void es_error(std::string message)
 	{
 		ESLog_LOG_MSG(Lvl::ES_ERROR, message);
-		assert(0 && message.c_str());
 	}
 
 	void es_fatal(std::string message)

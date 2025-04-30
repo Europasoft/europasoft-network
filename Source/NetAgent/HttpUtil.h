@@ -114,7 +114,8 @@ namespace HTTP
 		static std::array<std::pair<HttpMethodType, std::string>, 9> httpMethodTypeMappings;
 	};
 
-	const std::string& httpStatusCodeToString(HttpStatusCode code);
+	std::string httpStatusCodeToString(HttpStatusCode code);
+	bool httpStatusCodeIsError(HttpStatusCode code);
 	
 	HttpMethodType httpMethodFromString(std::string str);
 	std::string httpMethodToString(HttpMethodType method);
@@ -124,6 +125,19 @@ namespace HTTP
 	std::string makeResponseStatusCodeString(HttpStatusCode code);
 
 	std::string fileToString(const std::filesystem::path& filepath);
+
+	// NOTE: this could be accelerated with a tree structure
+	class HttpFilesystem
+	{
+		struct PathInfo { std::filesystem::path relative, full; };
+		std::filesystem::path webroot{};
+		std::vector<PathInfo> allowedFilepaths{};
+	public:
+		void updateFullRefresh(std::string_view webRootPath);
+
+		size_t findFile(const std::filesystem::path& path) const; // paths may be matched without file extension
+		bool getFileAsString(size_t id, std::string& contentOut) const;
+	};
 
 	struct HttpRequest
 	{

@@ -30,10 +30,10 @@ namespace HTTP
 		HttpMode httpMode;
 		std::vector<HttpHandlerBinding> handlers;
 		std::list<std::future<HttpTaskResult>> futures;
-		std::filesystem::path webroot{};
+		HttpFilesystem httpFilesystem{};
 		static HttpTaskResult handleHttpRequest(Connection& connection, std::vector<HttpHandlerBinding>& methodHandlers);
-		static HttpRequest parseHttpRequest(const std::string& request);
-		HttpResponse filesystemRequestHandler(const HttpRequest& request);
+		static HttpRequest parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut);
+		HttpResponse filesystemRequestHandler(const HttpRequest& request) const;
 		
 	};
 }

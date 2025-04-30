@@ -24,9 +24,9 @@ namespace HTTP
 
 	void HttpServer::bindRequestHandler(std::string_view filesystemWebrootPath)
 	{
-		webroot = std::filesystem::path(filesystemWebrootPath);
 		using namespace std::placeholders;
 		ESLog::es_assertRuntime(std::filesystem::exists(filesystemWebrootPath), "The WebRoot path must point to a valid directory");
+		httpFilesystem.updateFullRefresh(filesystemWebrootPath);
 		std::function<HttpResponse(const HttpRequest&)> f = std::bind(&HttpServer::filesystemRequestHandler, this, std::placeholders::_1);
 		bindRequestHandler(HttpMethodType::ANY_M, f);
 	}
@@ -78,10 +78,20 @@ namespace HTTP
 		if (requestString.empty())
 			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .originalRequest = requestString };
 
-		HttpRequest request = parseHttpRequest(requestString);
+		HttpStatusCode parserStatus = HttpStatusCode::SRV_ERROR;
+		HttpRequest request = parseHttpRequest(requestString, parserStatus);
 
-		if (request.method == HttpMethodType::UNRECOGNIZED_M)
-			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .originalRequest = requestString, .logInfo = "unrecognized request method"};
+		// return early for issues found during parsing
+		if (httpStatusCodeIsError(parserStatus) or request.method == HttpMethodType::UNRECOGNIZED_M)
+		{
+			if (parserStatus == HttpStatusCode::URI_TOO_LONG or 
+				parserStatus == HttpStatusCode::PAYLOAD_TOO_LARGE or 
+				parserStatus == HttpStatusCode::NO_REQUEST_LENGTH)
+				return HttpTaskResult{ .statusCode = parserStatus, .originalRequest = "", .logInfo = "request length issue" };
+			if (request.method == HttpMethodType::UNRECOGNIZED_M)
+				return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .originalRequest = "", .logInfo = "unrecognized request method"};
+			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .originalRequest = "", .logInfo = "unknown request failure" };
+		}
 		
 		for (HttpHandlerBinding& handler : methodHandlers)
 		{
@@ -97,27 +107,49 @@ namespace HTTP
 		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .originalRequest = requestString };
 	}
 
-	HttpRequest HttpServer::parseHttpRequest(const std::string& request)
+	HttpRequest HttpServer::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)
 	{
 		auto methodEnd = request.find(" ");
 		auto urlEnd = request.find(" ", methodEnd + 1);
+
+		// catch HTTP methods that are longer than the longest supported
+		if (methodEnd > 7)
+		{
+			parserStatusOut = HttpStatusCode::METHOD_NOT_ALLLOWED;
+			return HttpRequest{};
+		}
+		// catch URIs that are unacceptably long
+		if (urlEnd - methodEnd > 9000)
+		{
+			parserStatusOut = HttpStatusCode::URI_TOO_LONG;
+			return HttpRequest{};
+		}
+		// TODO: check payload length, header fields, and request length value in request
+
 		HttpRequest req;
 		req.method = httpMethodFromString(request.substr(0, methodEnd));
 		req.url = request.substr(methodEnd, urlEnd - methodEnd);
+		parserStatusOut = HttpStatusCode::OK;
 		return req;
+		
 	}
 
-	HttpResponse HttpServer::filesystemRequestHandler(const HttpRequest& request)
+	HttpResponse HttpServer::filesystemRequestHandler(const HttpRequest& request) const
 	{
 		if (request.method != HttpMethodType::GET_M)
 			return HttpResponse::errorResponse(HttpStatusCode::METHOD_NOT_ALLLOWED);
 
-		auto fullPath = webroot / std::filesystem::path(request.url);
-		fullPath = std::filesystem::weakly_canonical(fullPath);
-		if (not std::filesystem::is_regular_file(fullPath))
+		auto url = request.url;
+		//auto url = "../noaccess.txt";//request.url
+
+		std::erase(url, ' ');
+		const auto fileId = httpFilesystem.findFile(url);
+		if (not fileId)
 			return HttpResponse::errorResponse(HttpStatusCode::NOT_FOUND);
 
-		const auto content = fileToString(fullPath);
+		std::string content;
+		if (not httpFilesystem.getFileAsString(fileId, content))
+			return HttpResponse::errorResponse(HttpStatusCode::SRV_ERROR);
 		if (content.empty())
 			return HttpResponse::errorResponse(HttpStatusCode::NO_CONTENT);
 
