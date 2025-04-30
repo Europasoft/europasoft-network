@@ -6,9 +6,9 @@
 #include <string>
 #include <string_view>
 #include <fstream>
-#include <chrono>
 #include <time.h>
 #include <mutex>
+#include <iomanip>
 
 namespace ESLog
 {
@@ -62,7 +62,29 @@ namespace ESLog
 
 	void es_assertRuntime(bool condition, std::string message);
 
-	
+	// this makes string formatting syntax a bit cleaner, in absence of std::format
+	struct FormatStr
+	{
+		std::ostringstream strs{};
+
+		template <typename T>
+		FormatStr& operator<<(T v)
+		{
+			strs << v;
+			return *this;
+		}
+		FormatStr& operator<<(double v)
+		{
+			strs << std::setprecision(17) << v;
+			return *this;
+		}
+
+		operator std::string()
+		{
+			return strs.str();
+		}
+	};
+
 }
 
 

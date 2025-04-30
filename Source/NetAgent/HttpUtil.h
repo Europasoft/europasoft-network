@@ -15,53 +15,6 @@
 
 namespace HTTP
 {
-	//struct stringFormatter
-	//{
-	//	std::ostringstream stream;
-	//
-	//	template<typename Arg_T>
-	//	stringFormatter& operator<<(Arg_T arg)
-	//	{
-	//		stream << arg;
-	//		return *this;
-	//	}
-	//
-	//	std::string str() const
-	//	{
-	//		return stream.str();
-	//	}
-	//};
-
-	
-
-	//const char* es_stringFormatArg(const std::string& s, std::vector<std::string*>& allocs);
-
-	//const char* es_stringFormatArg(int64_t i, std::vector<std::string*>& allocs);
-
-	//const char* es_stringFormatArg(double d, std::vector<std::string*>& allocs);
-
-	// std::format would be nicer, but not viable due to limited support
-	//template<class ... Args>
-	//std::string formatStr(char const* form, Args&& ...args)
-	//template <class ... Ts>
-	//void formatStr(char const* form, Ts && ... inputs)
-	//{
-	//	//std::vector<std::string> strings;
-	//	//stringAllocs.reserve(30);
-	//	char buf[200];
-	//	std::snprintf(buf, 200, form, std::to_string(inputs) ...);
-	//	//for (std::string* alloc : stringAllocs)
-	//	//	delete alloc;
-	//	return std::string(buf);
-	//
-	//	//std::string s;
-	//	//([&s]
-	//	//	{
-	//	//		s += std::to_string(inputs);
-	//	//	} (), ...);
-	//	//return s;
-	//}
-
 	enum class HttpStatusCode : uint32_t
 	{
 		UNRECOGNIZED = 99,
@@ -142,9 +95,11 @@ namespace HTTP
 	struct HttpRequest
 	{
 		HttpMethodType method = HttpMethodType::UNRECOGNIZED_M;
-		std::string url{};
+		std::string url = "uri not parsed";
 		std::string headerFields{};
 		std::string payload{};
+
+		std::string toShortString() const;
 	};
 
 	struct HttpResponse
@@ -160,8 +115,7 @@ namespace HTTP
 	struct HttpTaskResult
 	{
 		HttpStatusCode statusCode = HttpStatusCode::BAD_REQUEST;
-		std::string originalRequest{};
-		std::string logInfo{};
+		HttpRequest request{};
 	};
 
 	struct HttpHandlerBinding

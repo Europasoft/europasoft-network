@@ -40,10 +40,7 @@ namespace ESLog
 
 	std::string formatLogMessage(Lvl logLevel, std::string message)
 	{
-		std::time_t tnow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		char tbuf[30];
-		ctime_s(tbuf, sizeof(tbuf), &tnow);
-		return "\n" + getLogLevelString(logLevel) + " [" + tbuf + "] \t" + message;
+		return FormatStr() << "\n[" << getLogLevelString(logLevel) << "] " << message;
 	}
 
 	void logToFile(std::string message)
@@ -110,8 +107,6 @@ namespace ESLog
 		if (not condition)
 			es_fatal(message);
 	}
-
-
 }
 
 

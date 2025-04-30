@@ -45,8 +45,7 @@ namespace HTTP
 		{
 			if (conn.getIncomingDataSize() > 0)
 			{
-				//ESLog::es_traffic(std::format("Incoming {} bytes", conn.getIncomingDataSize()));
-				ESLog::es_traffic((std::ostringstream() << "Incoming " << conn.getIncomingDataSize() << " bytes").str());
+				ESLog::es_traffic(ESLog::FormatStr() << "Incoming " << conn.getIncomingDataSize() << " bytes");
 				futures.push_back(std::async(std::launch::async, &HttpServer::handleHttpRequest, std::ref(conn), std::ref(handlers)));
 			}
 		}
@@ -58,9 +57,8 @@ namespace HTTP
 			if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 			{
 				const HttpTaskResult result = future.get();
-				//ESLog::es_traffic(std::format("Request\n{}\nProcessed: '{} {}'\n", result.originalRequest, (uint32_t)result.statusCode, httpStatusCodeToString(result.statusCode)));
-				ESLog::es_traffic((std::ostringstream() << "Request\n" << result.originalRequest 
-								<< "\nProcessed: '" << (uint32_t)result.statusCode << " " << httpStatusCodeToString(result.statusCode) << "'").str());
+				const std::string status = ESLog::FormatStr() << (uint32_t)result.statusCode << " " << httpStatusCodeToString(result.statusCode);
+				ESLog::es_traffic(ESLog::FormatStr() << "Processed request\n{\n\t" << result.request.toShortString() << "\n}\n" << status << "\n");
 				it = futures.erase(it);
 			}
 			else
@@ -76,7 +74,7 @@ namespace HTTP
 		std::string requestString;
 		connection.receive(requestString);
 		if (requestString.empty())
-			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .originalRequest = requestString };
+			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST };
 
 		HttpStatusCode parserStatus = HttpStatusCode::SRV_ERROR;
 		HttpRequest request = parseHttpRequest(requestString, parserStatus);
@@ -87,10 +85,10 @@ namespace HTTP
 			if (parserStatus == HttpStatusCode::URI_TOO_LONG or 
 				parserStatus == HttpStatusCode::PAYLOAD_TOO_LARGE or 
 				parserStatus == HttpStatusCode::NO_REQUEST_LENGTH)
-				return HttpTaskResult{ .statusCode = parserStatus, .originalRequest = "", .logInfo = "request length issue" };
+				return HttpTaskResult{ .statusCode = parserStatus, .request = request };
 			if (request.method == HttpMethodType::UNRECOGNIZED_M)
-				return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .originalRequest = "", .logInfo = "unrecognized request method"};
-			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .originalRequest = "", .logInfo = "unknown request failure" };
+				return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = request };
+			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .request = request };
 		}
 		
 		for (HttpHandlerBinding& handler : methodHandlers)
@@ -100,11 +98,11 @@ namespace HTTP
 				const HttpResponse response = handler.execute(request);
 				std::string responseString = response.finalizeToString();
 				connection.send(responseString);
-				return HttpTaskResult{ .statusCode = response.statusCode, .originalRequest = requestString, .logInfo = "handled" };
+				return HttpTaskResult{ .statusCode = response.statusCode, .request = request };
 			}
 		}
 
-		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .originalRequest = requestString };
+		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = request };
 	}
 
 	HttpRequest HttpServer::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)

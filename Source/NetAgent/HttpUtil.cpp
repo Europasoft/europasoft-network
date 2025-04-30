@@ -9,25 +9,6 @@
 
 namespace HTTP
 {
-
-	//const char* es_stringFormatArg(const std::string& s, std::vector<std::string*>& allocs)
-	//{
-	//	return s.c_str();
-	//}
-
-	//const char* es_stringFormatArg(int64_t i, std::vector<std::string*>& allocs)
-	//{
-	//	allocs.push_back(new std::string(std::to_string(i)));
-	//	return allocs.back()->c_str();
-	//}
-
-	//const char* es_stringFormatArg(double d, std::vector<std::string*>& allocs)
-	//{
-	//	allocs.push_back(new std::string(std::to_string(d)));
-	//	return allocs.back()->c_str();
-	//}
-
-
 	std::array<std::pair<HttpStatusCode, std::string>, 24> StringEnumHelpers::httpStatusCodeMappings =
 		{
 			std::pair<HttpStatusCode, std::string>{ HttpStatusCode::OK,							"OK" },
@@ -75,7 +56,7 @@ namespace HTTP
 	{
 		auto& mappings = StringEnumHelpers::httpStatusCodeMappings;
 		auto iterator = std::find_if(mappings.begin(), mappings.end(),
-			[&](const auto& p) { return (p.first == code); });
+								[&](const auto& p) { return (p.first == code); });
 		return (iterator != mappings.end()) ? (*iterator).second : "UNRECOGNIZED CODE";
 	}
 
@@ -88,7 +69,7 @@ namespace HTTP
 	{
 		auto& mappings = StringEnumHelpers::httpMethodTypeMappings;
 		auto iterator = std::find_if(mappings.begin(), mappings.end(),
-			[&](const auto& p) { return (p.second[0] == str[0] and p.second[1] == str[1]); });
+								[&](const auto& p) { return (p.second[0] == str[0] and p.second[1] == str[1]); });
 		return (iterator != mappings.end()) ? (*iterator).first : HttpMethodType::UNRECOGNIZED_M;
 	}
 
@@ -96,7 +77,7 @@ namespace HTTP
 	{
 		auto& mappings = StringEnumHelpers::httpMethodTypeMappings;
 		auto iterator = std::find_if(mappings.begin(), mappings.end(),
-			[&](const auto& p) { return (p.first == method); });
+								[&](const auto& p) { return (p.first == method); });
 		return (iterator != mappings.end()) ? (*iterator).second : "UNRECOGNIZED METHOD";
 	}
 
@@ -108,23 +89,19 @@ namespace HTTP
 			ESLog::es_warning("Manually adding Content-Length header field to HTTP responses is not necessary");
 			return;
 		}
-		//headerFields.push_back(formatStr("%s%s%s", name, (name.ends_with(':')) ? "" : ":", value));
-		headerFields.push_back((std::ostringstream() << name << ((name.ends_with(':')) ? "" : ":") << value).str());
+		headerFields.push_back(ESLog::FormatStr() << name << ((name.ends_with(':')) ? "" : ":") << value);
 	}
 
 	std::string HttpResponse::finalizeToString() const
 	{
 		HttpResponse res = *this;
-		//res.headerFields.push_back(formatStr("Content-Length: %s", res.payload.size()));
-		res.headerFields.push_back((std::ostringstream() << "Content-Length: " << res.payload.size()).str());
+		res.headerFields.push_back(ESLog::FormatStr() << "Content-Length: " << res.payload.size());
 		std::string header{};
 		for (size_t i = 1; i < res.headerFields.size(); i++)
-			//header.append(formatStr("{}\r\n", res.headerFields[i]));
-			header.append((std::ostringstream() << res.headerFields[i] << "\r\n").str());
+			header.append(ESLog::FormatStr() << res.headerFields[i] << "\r\n");
 
-		//return formatStr("%s %s\r\n%s\r\n%s", makeResponseVersionString(), makeResponseStatusCodeString(res.statusCode), header, res.payload);
-		return (std::ostringstream() << makeResponseVersionString() << " " << makeResponseStatusCodeString(res.statusCode) 
-					<< "\r\n" << header << "\r\n" << res.payload).str();
+		return ESLog::FormatStr() << makeResponseVersionString() << " " << makeResponseStatusCodeString(res.statusCode)
+					<< "\r\n" << header << "\r\n" << res.payload;
 	}
 
 	HttpResponse HttpResponse::errorResponse(HttpStatusCode code)
@@ -144,8 +121,7 @@ namespace HTTP
 
 	std::string makeResponseStatusCodeString(HttpStatusCode code)
 	{
-		//return formatStr("%s %s", static_cast<uint32_t>(code), httpStatusCodeToString(code));
-		return (std::ostringstream() << static_cast<uint32_t>(code) << " " << httpStatusCodeToString(code)).str();
+		return ESLog::FormatStr() << static_cast<uint32_t>(code) << " " << httpStatusCodeToString(code);
 	}
 
 	std::string fileToString(const std::filesystem::path& filepath)
@@ -190,7 +166,6 @@ namespace HTTP
 			auto relativeNormalized = allowedFilepaths[i].relative.string();
 			std::replace(relativeNormalized.begin(), relativeNormalized.end(), '\\', '/');
 			relativeNormalized = "/" + relativeNormalized;
-			// TODO: this part doesn't work although paths seem to match - why?
 			if (allowedFilepaths[i].relative == path or relativeNormalized == path.string())
 				return i + 1;
 		}
@@ -211,6 +186,11 @@ namespace HTTP
 
 		contentOut = fileToString(fullPath);
 		return true;
+	}
+
+	std::string HttpRequest::toShortString() const
+	{
+		return ESLog::FormatStr() << httpMethodToString(method) << " " << url.substr(0, 300) << (url.length() > 60 ? "..." : "");
 	}
 
 }
