@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Source\NetAgent\Agent.cpp" />
     <ClCompile Include="Source\NetAgent\HttpServer.cpp" />
+    <ClCompile Include="Source\NetAgent\HttpServerUtils\europasoft-json\Source\Parser.cpp" />
     <ClCompile Include="Source\NetAgent\HttpUtil.cpp" />
     <ClCompile Include="Source\NetAgent\Logging.cpp" />
     <ClCompile Include="Source\NetThread\ListenThread.cpp" />
@@ -34,6 +35,7 @@
     <ClInclude Include="Source\Examples\TcpChatExample.h" />
     <ClInclude Include="Source\NetAgent\Agent.h" />
     <ClInclude Include="Source\NetAgent\HttpServer.h" />
+    <ClInclude Include="Source\NetAgent\HttpServerUtils\europasoft-json\Source\Parser.h" />
     <ClInclude Include="Source\NetAgent\HttpUtil.h" />
     <ClInclude Include="Source\NetAgent\Logging.h" />
     <ClInclude Include="Source\NetThread\ListenThread.h" />

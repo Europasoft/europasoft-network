@@ -1,6 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "NetAgent/HttpServer.h"
-#include "NetAgent/Logging.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 
 #include <functional>
 #include <stdint.h>

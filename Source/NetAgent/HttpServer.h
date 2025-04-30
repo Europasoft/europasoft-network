@@ -1,7 +1,7 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #pragma once
 #include "NetAgent/Agent.h"
-#include "NetAgent/HttpUtil.h"
+#include "NetAgent/HttpServerUtils/HttpUtil.h"
 
 #include <string>
 #include <string_view>
