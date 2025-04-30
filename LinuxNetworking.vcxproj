@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
       <Configuration>Debug</Configuration>
@@ -35,32 +35,38 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\NetAgent\Agent.cpp" />
-    <ClCompile Include="..\Source\NetThread\ListenThread.cpp" />
-    <ClCompile Include="..\Source\NetThread\NetThreadSync.cpp" />
-    <ClCompile Include="..\Source\NetThread\StreamThread.cpp" />
-    <ClCompile Include="..\Source\Networking.cpp" />
-    <ClCompile Include="..\Source\Sockets\Sockets.cpp" />
+    <ClInclude Include="Source\Examples\SimpleHttpServerExample.h" />
+    <ClInclude Include="Source\Examples\TcpChatExample.h" />
+    <ClInclude Include="Source\NetAgent\Agent.h" />
+    <ClInclude Include="Source\NetAgent\HttpServer.h" />
+    <ClInclude Include="Source\NetAgent\HttpUtil.h" />
+    <ClInclude Include="Source\NetAgent\Logging.h" />
+    <ClInclude Include="Source\NetThread\ListenThread.h" />
+    <ClInclude Include="Source\NetThread\NetThreadSync.h" />
+    <ClInclude Include="Source\NetThread\StreamThread.h" />
+    <ClInclude Include="Source\Sockets\PlatformMacros.h" />
+    <ClInclude Include="Source\Sockets\Sockets.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Source\Examples\SimpleHttpServerExample.h" />
-    <ClInclude Include="..\Source\Examples\TcpChatExample.h" />
-    <ClInclude Include="..\Source\NetAgent\Agent.h" />
-    <ClInclude Include="..\Source\NetThread\ListenThread.h" />
-    <ClInclude Include="..\Source\NetThread\NetThreadSync.h" />
-    <ClInclude Include="..\Source\NetThread\StreamThread.h" />
-    <ClInclude Include="..\Source\Sockets\PlatformMacros.h" />
-    <ClInclude Include="..\Source\Sockets\Sockets.h" />
+    <ClCompile Include="Source\NetAgent\Agent.cpp" />
+    <ClCompile Include="Source\NetAgent\HttpServer.cpp" />
+    <ClCompile Include="Source\NetAgent\HttpUtil.cpp" />
+    <ClCompile Include="Source\NetAgent\Logging.cpp" />
+    <ClCompile Include="Source\NetThread\ListenThread.cpp" />
+    <ClCompile Include="Source\NetThread\NetThreadSync.cpp" />
+    <ClCompile Include="Source\NetThread\StreamThread.cpp" />
+    <ClCompile Include="Source\Networking.cpp" />
+    <ClCompile Include="Source\Sockets\Sockets.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{e298cf2c-9d96-432c-bad8-5fb79c6d00f4}</ProjectGuid>
+    <ProjectGuid>{14c6638a-209c-4ad7-b320-8dac1311282f}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>NetworkingLinux</RootNamespace>
+    <RootNamespace>LinuxNetworking</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
-    <LinuxProjectType>{2238F9CD-F817-4ECC-BD14-2524D2669B35}</LinuxProjectType>
+    <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -77,11 +83,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <RemoteRootDir>~</RemoteRootDir>
+    <RemoteRootDir>~/NetworkingLinux</RemoteRootDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
-    <RemoteRootDir>~</RemoteRootDir>
+    <RemoteRootDir>~/NetworkingLinux</RemoteRootDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -94,16 +100,22 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <RemoteCppCompileToolExe>g++</RemoteCppCompileToolExe>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <RemoteCppCompileToolExe>g++</RemoteCppCompileToolExe>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)/../Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CppLanguageStandard>c++20</CppLanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)/../Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CppLanguageStandard>c++20</CppLanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

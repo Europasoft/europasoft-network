@@ -20,6 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\NetAgent\Agent.cpp" />
+    <ClCompile Include="Source\NetAgent\HttpServer.cpp" />
+    <ClCompile Include="Source\NetAgent\HttpUtil.cpp" />
+    <ClCompile Include="Source\NetAgent\Logging.cpp" />
     <ClCompile Include="Source\NetThread\ListenThread.cpp" />
     <ClCompile Include="Source\NetThread\NetThreadSync.cpp" />
     <ClCompile Include="Source\NetThread\StreamThread.cpp" />
@@ -30,6 +33,9 @@
     <ClInclude Include="Source\Examples\SimpleHttpServerExample.h" />
     <ClInclude Include="Source\Examples\TcpChatExample.h" />
     <ClInclude Include="Source\NetAgent\Agent.h" />
+    <ClInclude Include="Source\NetAgent\HttpServer.h" />
+    <ClInclude Include="Source\NetAgent\HttpUtil.h" />
+    <ClInclude Include="Source\NetAgent\Logging.h" />
     <ClInclude Include="Source\NetThread\ListenThread.h" />
     <ClInclude Include="Source\NetThread\NetThreadSync.h" />
     <ClInclude Include="Source\NetThread\StreamThread.h" />
@@ -69,6 +75,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -136,6 +143,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,6 +160,8 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)/Source</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
