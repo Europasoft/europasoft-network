@@ -14,7 +14,7 @@ namespace ESLog
 {
 	enum class Lvl : uint32_t
 	{
-		ES_TRAFFIC = 0,
+		ES_DETAIL = 0,
 		ES_INFO = 1,
 		ES_WARNING = 2,
 		ES_ERROR = 3,
@@ -50,7 +50,7 @@ namespace ESLog
 
 	void logToOutput(std::string message);
 
-	void es_traffic(std::string message);
+	void es_detail(std::string message);
 
 	void es_info(std::string message);
 

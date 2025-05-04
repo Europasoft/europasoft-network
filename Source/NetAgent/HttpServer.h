@@ -18,22 +18,23 @@ namespace HTTP
 	{
 	public:
 		enum class HttpMode { HTTP, HTTPS };
-		HttpServer(HttpMode httpMode);
+		enum class ServerMode { Static, Dynamic };
+		HttpServer(HttpMode httpMode, ServerMode serverMode);
 
 		void bindRequestHandler(HttpMethodType httpMethod, std::function<HttpResponse(const HttpRequest&)> handlerFunction);
 		void bindRequestHandler(std::string_view filesystemWebrootPath);
 		void start(std::string_view address);
 		void handleRequests();
-		
 
 	protected:
 		HttpMode httpMode;
+		ServerMode serverMode;
 		std::vector<HttpHandlerBinding> handlers;
 		std::list<std::future<HttpTaskResult>> futures;
 		HttpFilesystem httpFilesystem{};
 		static HttpTaskResult handleHttpRequest(Connection& connection, std::vector<HttpHandlerBinding>& methodHandlers);
 		static HttpRequest parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut);
 		HttpResponse filesystemRequestHandler(const HttpRequest& request) const;
-		
+		HttpResponse dynamicRequestHandler(const HttpRequest& request) const;
 	};
 }

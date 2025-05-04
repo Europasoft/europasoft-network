@@ -1,7 +1,7 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "NetAgent/HttpServer.h"
-#include "NetAgent/HttpUtil.h"
-#include "NetAgent/Logging.h"
+#include "NetAgent/HttpServerUtils/HttpUtil.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 
 #include <stdint.h>
 #include <fstream>
@@ -96,9 +96,10 @@ namespace HTTP
 	{
 		HttpResponse res = *this;
 		res.headerFields.push_back(ESLog::FormatStr() << "Content-Length: " << res.payload.size());
+
 		std::string header{};
-		for (size_t i = 1; i < res.headerFields.size(); i++)
-			header.append(ESLog::FormatStr() << res.headerFields[i] << "\r\n");
+		for (auto& field : res.headerFields)
+			header.append(ESLog::FormatStr() << field << "\r\n");
 
 		return ESLog::FormatStr() << makeResponseVersionString() << " " << makeResponseStatusCodeString(res.statusCode)
 					<< "\r\n" << header << "\r\n" << res.payload;
@@ -141,6 +142,7 @@ namespace HTTP
 	{
 		ESLog::es_info("Refreshing filesystem paths under WebRoot");
 		webroot = webRootPath;
+		updateContentTypeMappings();
 		for (const auto& p : std::filesystem::recursive_directory_iterator(webRootPath))
 		{
 			if (not std::filesystem::is_directory(p))
@@ -152,11 +154,30 @@ namespace HTTP
 				allowedFilepaths.push_back(PathInfo
 					{
 						.relative = std::filesystem::relative(p.path(), webRootPath),
-						.full = std::filesystem::weakly_canonical(webroot / p.path())
+						.full = std::filesystem::weakly_canonical(webroot / p.path()),
+						.knownExtension = p.path().extension().string()
 					});
+				ESLog::es_detail(ESLog::FormatStr() << allowedFilepaths.back().relative << " (" << makeContentTypeHeaderField(allowedFilepaths.back().knownExtension) << ")");
 			}
 		}
 		ESLog::es_info("Completed gathering filesystem paths");
+	}
+
+	void HttpFilesystem::updateContentTypeMappings()
+	{
+		HttpFilesystem::fileExtensionContentTypeMappings =
+		{
+			// only includes the most common file types
+			FileFormatInfo{ CommonFileExt::HTML,	"html",		"text/html",		ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::CSS,		"css",		"text/css",			ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::JS,		"js",		"text/javascript",	ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::JSON,	"json",		"application/json",	ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::CSV,		"csv",		"text/csv",			ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::TXT,		"txt",		"text/plain",		ContentTypeCategory::U8TEXT},
+			FileFormatInfo{ CommonFileExt::PNG,		"png",		"image/png",		ContentTypeCategory::BINARY},
+			FileFormatInfo{ CommonFileExt::SVG,		"svg",		"image/svg+xml",	ContentTypeCategory::BINARY},
+			FileFormatInfo{ CommonFileExt::WEBP,	"webp",		"image/webp",		ContentTypeCategory::BINARY}
+		};
 	}
 
 	size_t HttpFilesystem::findFile(const std::filesystem::path& path) const
@@ -179,7 +200,7 @@ namespace HTTP
 			ESLog::es_error("Attempted to read file with bad id");
 			return false;
 		}
-		const auto& fullPath = allowedFilepaths[id - 1].full;
+		const auto& fullPath = getFileInfo(id).full;
 
 		if (not (fullPath.is_absolute() and std::filesystem::is_regular_file(fullPath)))
 			return false;
@@ -188,9 +209,68 @@ namespace HTTP
 		return true;
 	}
 
+	HttpFilesystem::PathInfo HttpFilesystem::getFileInfo(size_t id) const
+	{
+		return allowedFilepaths[id - 1];
+	}
+
 	std::string HttpRequest::toShortString() const
 	{
 		return ESLog::FormatStr() << httpMethodToString(method) << " " << url.substr(0, 300) << (url.length() > 60 ? "..." : "");
+	}
+
+	std::string HttpRequest::getHeaderFieldValue(const std::string& name) const
+	{
+		for (const std::string& headerField : headerFields)
+		{
+			if (headerField.length() < name.length() + 2 or headerField.substr(0, name.length()) != name)
+				continue;
+
+			std::string field = headerField.substr(name.length());
+			auto valueStart = field.find(":");
+			if (valueStart == std::string::npos or valueStart + 1 >= field.length())
+				return std::string();
+			field = field.substr(valueStart + 1);
+			valueStart = field.find_first_not_of(" ");
+			if (valueStart == std::string::npos)
+				return std::string();
+
+			return field.substr(valueStart);
+		}
+		return std::string();
+	}
+
+	const FileFormatInfo& HttpFilesystem::fileFormatFromExtension(std::string fileExtension) const
+	{
+		if (fileExtension[0] != '.')
+			fileExtension = ESLog::FormatStr() << "." << fileExtension;
+		auto& mappings = HttpFilesystem::fileExtensionContentTypeMappings;
+		auto iterator = std::find_if(mappings.begin(), mappings.end(),
+								[&](const auto& b) { return (fileExtension == ("." + b.extensionString)); });
+		if (iterator != mappings.end())
+			return *iterator;
+		else
+			return FileFormatInfo{ CommonFileExt::NONE };
+	}
+
+	std::string HttpFilesystem::makeContentTypeHeaderField(std::string fileExtension) const
+	{
+		FileFormatInfo info = fileFormatFromExtension(fileExtension);
+		if (info.extensionEnum == CommonFileExt::NONE)
+			info = { CommonFileExt::TXT, "txt", "text/plain", ContentTypeCategory::U8TEXT };
+
+		return ESLog::FormatStr() << "Content-Type: " << info.mediaTypeString 
+					<< (info.contentTypeCategory == ContentTypeCategory::U8TEXT ? "; charset=utf-8" : "");
+	}
+
+	void replaceSubstring(std::string& string, const std::string& from, const std::string& to)
+	{
+		auto index = string.find(from);
+		while (index != std::string::npos)
+		{
+			string.replace(index, from.length(), to);
+			index = string.find(from, index + to.length());
+		}
 	}
 
 }

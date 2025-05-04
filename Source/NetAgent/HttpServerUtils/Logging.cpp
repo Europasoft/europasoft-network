@@ -1,6 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #pragma once
-#include "NetAgent/Logging.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 #include "Sockets/PlatformMacros.h"
 #include <thread>
 
@@ -26,8 +26,8 @@ namespace ESLog
 
 	std::string getLogLevelString(Lvl lvl)
 	{
-		if (lvl == Lvl::ES_TRAFFIC)
-			return "TRAFFIC";
+		if (lvl == Lvl::ES_DETAIL)
+			return "DETAIL";
 		else if (lvl == Lvl::ES_INFO)
 			return "INFO";
 		else if (lvl == Lvl::ES_WARNING)
@@ -75,9 +75,9 @@ namespace ESLog
 			}).detach();
 	}
 
-	void es_traffic(std::string message)
+	void es_detail(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_TRAFFIC, message);
+		ESLog_LOG_MSG(Lvl::ES_DETAIL, message);
 	}
 
 	void es_info(std::string message)

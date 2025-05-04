@@ -61,6 +61,24 @@ namespace HTTP
 		ANY_M = 101
 	};
 	
+	enum class CommonFileExt : uint32_t
+	{
+		NONE, HTML, CSS, JS, JSON, CSV, TXT, PNG, SVG, WEBP
+	};
+
+	enum class ContentTypeCategory
+	{ 
+		U8TEXT, BINARY 
+	};
+
+	struct FileFormatInfo
+	{
+		CommonFileExt extensionEnum = CommonFileExt::NONE;
+		std::string extensionString{};
+		std::string mediaTypeString{};
+		ContentTypeCategory contentTypeCategory = ContentTypeCategory::U8TEXT;
+	};
+
 	struct StringEnumHelpers
 	{
 		static std::array<std::pair<HttpStatusCode, std::string>, 24> httpStatusCodeMappings;
@@ -79,27 +97,40 @@ namespace HTTP
 
 	std::string fileToString(const std::filesystem::path& filepath);
 
+	void replaceSubstring(std::string& string, const std::string& from, const std::string& to);
+
 	// NOTE: this could be accelerated with a tree structure
 	class HttpFilesystem
 	{
-		struct PathInfo { std::filesystem::path relative, full; };
-		std::filesystem::path webroot{};
-		std::vector<PathInfo> allowedFilepaths{};
 	public:
 		void updateFullRefresh(std::string_view webRootPath);
 
+		struct PathInfo { std::filesystem::path relative, full; std::string knownExtension; };
 		size_t findFile(const std::filesystem::path& path) const; // paths may be matched without file extension
 		bool getFileAsString(size_t id, std::string& contentOut) const;
+		PathInfo getFileInfo(size_t id) const;
+		const FileFormatInfo& fileFormatFromExtension(std::string fileExtension) const;
+		std::string makeContentTypeHeaderField(std::string fileExtension) const;
+	protected:
+		std::filesystem::path webroot{};
+		std::vector<PathInfo> allowedFilepaths{};
+
+		std::vector<FileFormatInfo> fileExtensionContentTypeMappings;
+		void updateContentTypeMappings();
+		
 	};
+
+	
 
 	struct HttpRequest
 	{
 		HttpMethodType method = HttpMethodType::UNRECOGNIZED_M;
 		std::string url = "uri not parsed";
-		std::string headerFields{};
+		std::vector<std::string> headerFields{};
 		std::string payload{};
 
 		std::string toShortString() const;
+		std::string getHeaderFieldValue(const std::string& name) const;
 	};
 
 	struct HttpResponse

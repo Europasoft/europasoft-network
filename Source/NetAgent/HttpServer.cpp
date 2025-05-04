@@ -1,5 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "NetAgent/HttpServer.h"
+#include "NetAgent/HttpServerUtils/DynamicPages.h"
 #include "NetAgent/HttpServerUtils/Logging.h"
 
 #include <functional>
@@ -10,8 +11,8 @@
 namespace HTTP
 {
 
-	HttpServer::HttpServer(HttpServer::HttpMode httpMode)
-		: Agent{ Agent::Mode::Server }, httpMode{ httpMode }
+	HttpServer::HttpServer(HttpServer::HttpMode httpMode, ServerMode serverMode)
+		: Agent{ Agent::Mode::Server }, httpMode{ httpMode }, serverMode{ serverMode }
 	{
 		// TODO: HTTPS (TLS) support
 		ESLog::es_assertRuntime(httpMode != HttpMode::HTTPS, "SSL/TLS is not supported");
@@ -45,7 +46,7 @@ namespace HTTP
 		{
 			if (conn.getIncomingDataSize() > 0)
 			{
-				ESLog::es_traffic(ESLog::FormatStr() << "Incoming " << conn.getIncomingDataSize() << " bytes");
+				ESLog::es_detail(ESLog::FormatStr() << "Incoming " << conn.getIncomingDataSize() << " bytes");
 				futures.push_back(std::async(std::launch::async, &HttpServer::handleHttpRequest, std::ref(conn), std::ref(handlers)));
 			}
 		}
@@ -58,7 +59,7 @@ namespace HTTP
 			{
 				const HttpTaskResult result = future.get();
 				const std::string status = ESLog::FormatStr() << (uint32_t)result.statusCode << " " << httpStatusCodeToString(result.statusCode);
-				ESLog::es_traffic(ESLog::FormatStr() << "Processed request\n{\n\t" << result.request.toShortString() << "\n}\n" << status << "\n");
+				ESLog::es_detail(ESLog::FormatStr() << "Processed request\n{\n\t" << result.request.toShortString() << "\n}\n" << status << "\n");
 				it = futures.erase(it);
 			}
 			else
@@ -98,6 +99,7 @@ namespace HTTP
 				const HttpResponse response = handler.execute(request);
 				std::string responseString = response.finalizeToString();
 				connection.send(responseString);
+				//ESLog::es_detail(ESLog::FormatStr() << "Responded with\n{\n" << responseString << "\n}");
 				return HttpTaskResult{ .statusCode = response.statusCode, .request = request };
 			}
 		}
@@ -122,11 +124,32 @@ namespace HTTP
 			parserStatusOut = HttpStatusCode::URI_TOO_LONG;
 			return HttpRequest{};
 		}
-		// TODO: check payload length, header fields, and request length value in request
 
 		HttpRequest req;
 		req.method = httpMethodFromString(request.substr(0, methodEnd));
 		req.url = request.substr(methodEnd, urlEnd - methodEnd);
+		std::erase(req.url, ' ');
+
+		// TODO: check payload length and request length value in request
+		auto lastFieldEnd = urlEnd;
+		for (uint32_t i = 0; i < 200; i++)
+		{
+			auto fieldStart = request.find("\r\n", lastFieldEnd);
+			auto fieldEnd = request.find("\r\n", fieldStart + 1);
+			auto field = request.substr(fieldStart, fieldEnd - fieldStart);
+			if (not (field == "\r\n" or field.empty()))
+			{
+				replaceSubstring(field, "\r", "");
+				replaceSubstring(field, "\n", "");
+				req.headerFields.push_back(field);
+				lastFieldEnd = fieldEnd;
+			}
+			else
+			{
+				break;
+			}
+		}
+
 		parserStatusOut = HttpStatusCode::OK;
 		return req;
 		
@@ -137,14 +160,20 @@ namespace HTTP
 		if (request.method != HttpMethodType::GET_M)
 			return HttpResponse::errorResponse(HttpStatusCode::METHOD_NOT_ALLLOWED);
 
-		auto url = request.url;
-		//auto url = "../noaccess.txt";//request.url
+		// in dynamic mode, requests might be to rehydrate a page, or just part of a page instead of a whole file
+		if (serverMode == ServerMode::Dynamic)
+		{
+			const HttpResponse dynamicResponse = dynamicRequestHandler(request);
+			if (dynamicResponse.statusCode != HttpStatusCode::UNRECOGNIZED)
+				return dynamicResponse;
+		}
 
-		std::erase(url, ' ');
-		const auto fileId = httpFilesystem.findFile(url);
+		// serve a static file, usually a full page reload clientside
+		const auto fileId = httpFilesystem.findFile(request.url);
 		if (not fileId)
 			return HttpResponse::errorResponse(HttpStatusCode::NOT_FOUND);
 
+		auto fileInfo = httpFilesystem.getFileInfo(fileId);
 		std::string content;
 		if (not httpFilesystem.getFileAsString(fileId, content))
 			return HttpResponse::errorResponse(HttpStatusCode::SRV_ERROR);
@@ -154,9 +183,55 @@ namespace HTTP
 		return HttpResponse
 		{
 			.statusCode = HttpStatusCode::OK,
-			.headerFields = { "Content-Type: text/html; charset=utf-8" }, // TODO: determine content type
+			.headerFields = 
+				{
+					httpFilesystem.makeContentTypeHeaderField(fileInfo.knownExtension)
+				},
+			//{ "Content-Type: text/html; charset=utf-8" }, // TODO: determine content type
 			.payload = content
 		};
+	}
+
+	HttpResponse HttpServer::dynamicRequestHandler(const HttpRequest& request) const
+	{
+		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromExtension(request.url);
+		if (requestFileInfo.extensionEnum != CommonFileExt::NONE and 
+			requestFileInfo.extensionEnum != CommonFileExt::HTML)
+			return HttpResponse{ .statusCode = HttpStatusCode::UNRECOGNIZED }; // fallback to static request handler
+
+		const bool isDynamicRequest = request.getHeaderFieldValue("X-Requested-With") == "SPA";
+
+		if (not isDynamicRequest)
+		{
+			// serve a blank bootstrapping page
+			auto page = makeDynamicBootstrapPage(request.url);
+			return HttpResponse
+			{
+				.statusCode = HttpStatusCode::OK,
+				.headerFields =
+					{
+						httpFilesystem.makeContentTypeHeaderField("html")
+					},
+				.payload = page
+			};
+		}
+		else
+		{
+			std::string content = ESLog::FormatStr() << "<main> <p>" << "Dynamic content" << "</p> </main>";
+			ESLog::es_detail(ESLog::FormatStr() << "Responding with " << content);
+			return HttpResponse
+			{
+				.statusCode = HttpStatusCode::OK,
+				.headerFields =
+					{
+						httpFilesystem.makeContentTypeHeaderField("html")
+					},
+				.payload = content
+			};
+		}
+
+		return HttpResponse{ .statusCode = HttpStatusCode::SRV_NOT_IMPLEMENTED };
+		
 	}
 
 }
