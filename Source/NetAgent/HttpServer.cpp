@@ -161,11 +161,12 @@ namespace HTTP
 			return HttpResponse::errorResponse(HttpStatusCode::METHOD_NOT_ALLLOWED);
 
 		// in dynamic mode, requests might be to rehydrate a page, or just part of a page instead of a whole file
-		if (serverMode == ServerMode::Dynamic)
+		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromExtension(request.url);
+		if (serverMode == ServerMode::Dynamic and 
+			(requestFileInfo.extensionEnum == CommonFileExt::NONE or
+			requestFileInfo.extensionEnum == CommonFileExt::HTML))
 		{
-			const HttpResponse dynamicResponse = dynamicRequestHandler(request);
-			if (dynamicResponse.statusCode != HttpStatusCode::UNRECOGNIZED)
-				return dynamicResponse;
+			return dynamicRequestHandler(request);
 		}
 
 		// serve a static file, usually a full page reload clientside
@@ -194,44 +195,43 @@ namespace HTTP
 
 	HttpResponse HttpServer::dynamicRequestHandler(const HttpRequest& request) const
 	{
-		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromExtension(request.url);
-		if (requestFileInfo.extensionEnum != CommonFileExt::NONE and 
-			requestFileInfo.extensionEnum != CommonFileExt::HTML)
-			return HttpResponse{ .statusCode = HttpStatusCode::UNRECOGNIZED }; // fallback to static request handler
-
-		const bool isDynamicRequest = request.getHeaderFieldValue("X-Requested-With") == "SPA";
-
-		if (not isDynamicRequest)
+		if (request.getHeaderFieldValue("X-Requested-With") != "SPA")
 		{
 			// serve a blank bootstrapping page
 			auto page = makeDynamicBootstrapPage(request.url);
 			return HttpResponse
 			{
 				.statusCode = HttpStatusCode::OK,
-				.headerFields =
-					{
-						httpFilesystem.makeContentTypeHeaderField("html")
-					},
+				.headerFields = { httpFilesystem.makeContentTypeHeaderField("html") },
 				.payload = page
 			};
 		}
-		else
-		{
-			std::string content = ESLog::FormatStr() << "<main> <p>" << "Dynamic content" << "</p> </main>";
-			ESLog::es_detail(ESLog::FormatStr() << "Responding with " << content);
-			return HttpResponse
-			{
-				.statusCode = HttpStatusCode::OK,
-				.headerFields =
-					{
-						httpFilesystem.makeContentTypeHeaderField("html")
-					},
-				.payload = content
-			};
-		}
 
-		return HttpResponse{ .statusCode = HttpStatusCode::SRV_NOT_IMPLEMENTED };
-		
+		std::string url = request.url;
+		if (url[0] == '/')
+			url = url.substr(1);
+		const auto fileId = httpFilesystem.findFile(request.url);
+		if (not fileId)
+			return HttpResponse::errorResponse(HttpStatusCode::NOT_FOUND);
+
+		auto fileInfo = httpFilesystem.getFileInfo(fileId);
+		std::string content;
+		if (not httpFilesystem.getFileAsString(fileId, content))
+			return HttpResponse::errorResponse(HttpStatusCode::SRV_ERROR);
+		if (content.empty())
+			return HttpResponse::errorResponse(HttpStatusCode::NO_CONTENT);
+
+		makeHtmlDynamicPage(content, request.url);
+
+		return HttpResponse
+		{
+			.statusCode = HttpStatusCode::OK,
+			.headerFields =
+				{
+					httpFilesystem.makeContentTypeHeaderField(fileInfo.knownExtension)
+				},
+			.payload = content
+		};
 	}
 
 }

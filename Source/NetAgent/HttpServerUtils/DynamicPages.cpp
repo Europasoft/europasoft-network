@@ -137,6 +137,20 @@ namespace HTTP
 		return page;
 	}
 
+	void makeHtmlDynamicPage(std::string& originalHtmlPage, const std::string& uri)
+	{
+		auto bodyStart = originalHtmlPage.find("<body>");
+		auto bodyEnd = originalHtmlPage.find("</body>");
+		if (bodyStart == std::string::npos or bodyEnd == std::string::npos)
+		{
+			ESLog::es_error(ESLog::FormatStr() << "File '" << uri << "' could not be parsed, no body tag found (tags cannot contain whitespace)");
+			return;
+		}
+		bodyStart += 6;
+		std::string body = originalHtmlPage.substr(bodyStart, bodyEnd - bodyStart);
+		originalHtmlPage = (ESLog::FormatStr() << "<main>" << body << "</main>");
+	}
+
 	
 
 	

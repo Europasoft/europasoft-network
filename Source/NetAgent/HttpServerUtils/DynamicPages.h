@@ -16,4 +16,5 @@ namespace HTTP
 
 	std::string makeDynamicBootstrapPage(const std::string& originalUri);
 	
+	void makeHtmlDynamicPage(std::string& originalHtmlPage, const std::string& uri);
 }
