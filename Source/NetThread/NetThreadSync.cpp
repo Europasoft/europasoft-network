@@ -4,6 +4,8 @@
 #include <limits>
 #include <cassert>
 #include <cstring>
+#include <new>
+#include <stdexcept>
 
 NetBuffer::NetBuffer(size_t allocSize)
 {
@@ -23,11 +25,11 @@ NetBuffer::NetBuffer(NetBuffer&& src) noexcept
 
 NetBuffer::NetBuffer(const NetBuffer& src)
 {
-    if (!src.buffer && !src.dataSize && !src.bufferSize) { return; }
+    if (!src.buffer or !src.dataSize or !src.bufferSize) { return; }
     std::unique_lock<std::recursive_mutex> lock;
     getBuffer(lock);
-    reserve(src.bufferSize, lock);
-    copyFrom(src.buffer, src.dataSize, lock);
+    if (reserve(src.bufferSize, lock))
+		copyFrom(src.buffer, src.dataSize, lock);
 }
 
 NetBuffer::~NetBuffer() 
@@ -46,11 +48,11 @@ size_t NetBuffer::getBufMax() { return (std::numeric_limits<size_t>::max)(); }
 
 bool NetBuffer::reserve(size_t newSize, const Lock& lock)
 {
-    assert(verifyLock(lock));
+	verifyLock(lock);
     if (newSize > getBufMax()) { return false; }
     if (newSize <= bufferSize) { return true; }
     // allocate a new buffer, copy existing data (if any), replace old buffer
-    auto* newBuffer = new char[newSize]; 
+    auto* newBuffer = new(std::nothrow) char[newSize];
 	if (not newBuffer)
 		return false;
 	if (dataSize > 0 && buffer && dataSize <= newSize)
@@ -63,8 +65,8 @@ bool NetBuffer::reserve(size_t newSize, const Lock& lock)
 
 bool NetBuffer::copyFrom(const char* data, size_t size, const Lock& lock)
 {
-    assert(verifyLock(lock));
-    assert(!dataSize && "copying into buffer would overwrite existing data");
+    verifyLock(lock);
+    assert(dataSize == 0 && "copying into buffer would overwrite existing data");
     if (dataSize || !data || !size) { return false; }
 
     if (!reserve(size, lock)) { return false; }
@@ -80,3 +82,8 @@ void NetBuffer::setDataSize(size_t newSize)
     dataSize = newSize;
 };
 
+void NetBuffer::verifyLock(const Lock& lock) const
+{
+	if (not lock.owns_lock() and lock.mutex() == &m)
+		throw std::logic_error("Invalid or missing lock for NetBuffer");
+}

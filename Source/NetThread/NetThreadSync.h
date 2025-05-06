@@ -47,7 +47,7 @@ protected:
 	std::recursive_mutex m;
 	void free();
 
-	bool verifyLock(const Lock& lock) const { return lock.owns_lock() && lock.mutex() == &m; }
+	void verifyLock(const Lock& lock) const;
 };
 
 class Timer

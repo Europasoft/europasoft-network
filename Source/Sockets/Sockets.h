@@ -59,6 +59,8 @@ namespace Sockets
 	// switches the socket to either blocking or non-blocking mode
 	int32_t setBlocking(SOCKET s, bool block);
 
+	bool setReceiveTimeout(SOCKET socketFd, int timeoutMs);
+
 	// shuts a connection down, flag can be one of: 0 (SD_RECEIVE), 1 (SD_SEND), 2 (SD_BOTH)
 	bool shutdownConnection(const SOCKET& s, int flag);
 

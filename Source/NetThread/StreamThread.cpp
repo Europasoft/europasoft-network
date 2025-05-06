@@ -1,5 +1,6 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "StreamThread.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 #include <cassert>
 #include <limits.h>
 #include <cstring>
@@ -63,6 +64,11 @@ void StreamThread::threadMain()
         }
     }
 
+	{
+		Lock socketLock;
+		if (not Sockets::setReceiveTimeout(socket.get(socketLock), 10000))
+			terminate = true;
+	}
 	lastComTimer.start();
 
     // thread main loop
@@ -76,8 +82,8 @@ void StreamThread::threadMain()
             if (Sockets::sendData(s, sendBuffer.getBuffer(bufferLock), sendBuffer.getDataSize()))
             { 
                 sendBuffer.setDataSize(0); // data sent, mark empty
+				lastComTimer.start();
             }
-			lastComTimer.start();
         }
 
         // receive
@@ -88,10 +94,10 @@ void StreamThread::threadMain()
             auto recvSize = Sockets::getReceiveSize(s);
             if (recvSize > 0)
             {
-				// end the connection if the network buffer grows too large
 				if (recvSize > 5e7)
 				{
-					terminate = true;
+					terminate = true; // end the connection if the network buffer grows too large
+					ESLog::es_detail("Connection thread terminating: received data too large");
 				}
 				else
 				{
@@ -100,21 +106,35 @@ void StreamThread::threadMain()
 					if (recvBuffer.reserve(recvSize, bufferLock))
 					{
 						recvSize = Sockets::receiveData(s, buffer, recvSize);
-						recvBuffer.setDataSize(recvSize);
-						lastComTimer.start();
+						if (recvSize > 0)
+						{
+							recvBuffer.setDataSize(recvSize);
+							lastComTimer.start();
+						}
+						else if (recvSize < 0)
+						{
+							terminate = true;
+							ESLog::es_detail("Connection thread terminating: receive failure");
+						}
 					}
 					else
 					{
 						terminate = true;
+						ESLog::es_error("Connection thread terminating: receive buffer allocation failed");
 					}
 				}
-
-                if (recvSize == 0) { terminate = true; } // connection closed
             }
         }
-		
-		if (lastComTimer.getElapsed() > 3.f)
+		const double delta = lastComTimer.getElapsed();
+		if (delta > 10.f)
+		{
+			terminate = true;
+			ESLog::es_detail("Connection thread terminating: comms delta timeout");
+		}
+		else if (delta > 1.5f)
+		{
 			Sockets::threadSleep(50); // idle the thread if no communication has happened in a while
+		}
         
         terminate = forceTerminate || terminate;
     }

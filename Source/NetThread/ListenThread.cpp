@@ -1,6 +1,7 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "ListenThread.h"
 #include "StreamThread.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 #include <cassert>
 #include <thread>
 #include <chrono>
@@ -30,7 +31,10 @@ void ListenThread::threadMain()
     {
         SOCKET s = accept(listenSocket, nullptr, nullptr); // try to accept a connection
         if (s != INVALID_SOCKET)
+		{
+			ESLog::es_detail("New connection established");
 			addConnectedSocket(s);
+		}
 
 		if (getNumNewlyConnected() >= 10)
 		{

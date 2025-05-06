@@ -130,6 +130,24 @@ namespace Sockets
         return r;
     }
 
+	bool setReceiveTimeout(SOCKET socketFd, int timeoutMs) 
+	{
+#ifdef _WIN32
+		DWORD timeout = static_cast<DWORD>(timeoutMs);
+		if (setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO,
+			reinterpret_cast<const char*>(&timeout), sizeof(timeout)) == SOCKET_ERROR)
+			return false;
+#else
+		struct timeval timeout{};
+		timeout.tv_sec = timeoutMs / 1000;
+		timeout.tv_usec = (timeoutMs % 1000) * 1000;
+		if (setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO,
+			&timeout, sizeof(timeout)) != 0)
+			return false;
+#endif
+		return true;
+	}
+
     bool shutdownConnection(const SOCKET& s, int flag) { return shutdown(s, flag) != SOCKET_ERROR; }
 
 	void closeSocket(SOCKET s)
