@@ -3,6 +3,7 @@
 #include "NetThread/StreamThread.h"
 #include "NetThread/ListenThread.h"
 #include "Sockets/Sockets.h"
+#include "NetAgent/HttpServerUtils/Logging.h"
 #include <algorithm>
 
 Agent::Agent(Mode mode)
@@ -55,7 +56,10 @@ bool Agent::updateConnections()
 		if (connections.size() < connectionLimit)
 			connections.push_back(Connection(socket));
 		else
+		{
 			Sockets::shutdownConnection(socket, 2); // drop connections if limit is exceeded
+			ESLog::es_detail("Connection limit exceeded, dropped connection");
+		}
 	}
 	return true;
 }

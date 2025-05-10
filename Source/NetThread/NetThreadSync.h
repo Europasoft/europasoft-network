@@ -62,6 +62,11 @@ public:
 		std::chrono::duration<double, std::milli> ms = (clock::now() - startTime);
 		return (ms.count() / 1000.0);
 	}
+	double getElapsedMs() const
+	{
+		std::chrono::duration<double, std::milli> ms = (clock::now() - startTime);
+		return ms.count();
+	}
 	bool checkTimeout(double max) 
 	{
 		if (getElapsed() >= max) 

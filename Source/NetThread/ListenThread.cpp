@@ -39,6 +39,7 @@ void ListenThread::threadMain()
 		if (getNumNewlyConnected() >= 10)
 		{
 			// temporarily stop accepting connections if there are too many requests to connect
+			ESLog::es_detail(ESLog::FormatStr() << getNumNewlyConnected() << " pending new connections, slowing down acceptance rate");
 			while (getNumNewlyConnected() >= 10)
 				Sockets::threadSleep(80);
 		}

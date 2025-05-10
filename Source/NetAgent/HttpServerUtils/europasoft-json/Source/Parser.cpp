@@ -3,7 +3,6 @@
 
 #include <limits.h>
 #include <iostream>
-#include <format>
 #include <cassert>
 #include <iomanip>
 #include <stack>
@@ -162,7 +161,8 @@ namespace JSONTextUtils
 		std::cout << "\nUTF-8: ";
 		for (auto c : s)
 		{
-			std::cout << std::format("{:08b}", ctu8(c)) << ", ";
+			assert(false && "std::format may not be available");
+			//std::cout << std::format("{:08b}", ctu8(c)) << ", ";
 		}
 
 		std::u32string s32be = utf8to32str(s);
@@ -403,7 +403,7 @@ namespace
 	bool openFile(str_view filePath, std::ifstream& fileStreamOut, size_t& fileSizeOut)
 	{
 		if (!getFileSize(filePath, fileSizeOut)) { return false; }
-		fileStreamOut.open(filePath, std::ios_base::binary);
+		fileStreamOut.open(std::string(filePath).c_str(), std::ios_base::binary);
 		return static_cast<bool>(fileStreamOut);
 	}
 

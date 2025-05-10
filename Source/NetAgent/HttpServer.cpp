@@ -2,6 +2,7 @@
 #include "NetAgent/HttpServer.h"
 #include "NetAgent/HttpServerUtils/DynamicPages.h"
 #include "NetAgent/HttpServerUtils/Logging.h"
+#include "NetThread/NetThreadSync.h"
 
 #include <functional>
 #include <stdint.h>
@@ -32,10 +33,15 @@ namespace HTTP
 		bindRequestHandler(HttpMethodType::ANY_M, f);
 	}
 
-	void HttpServer::start(std::string_view address)
+	void HttpServer::start(std::string_view address, std::string_view port)
 	{
-		const auto port = (httpMode == HttpMode::HTTPS) ? "443" : "80";
-		Agent::listen(port, address);
+#ifdef _WIN32
+		ESLog::es_detail(ESLog::FormatStr() << "Server starting");
+#else
+		ESLog::es_detail(ESLog::FormatStr() << "Server starting. Executable path: " << std::filesystem::canonical("/proc/self/exe"));
+#endif
+		const auto listenPort = port.empty() ? ((httpMode == HttpMode::HTTPS) ? "443" : "80") : port;
+		Agent::listen(listenPort, address);
 	}
 
 	void HttpServer::handleRequests()
@@ -59,7 +65,8 @@ namespace HTTP
 			{
 				const HttpTaskResult result = future.get();
 				const std::string status = ESLog::FormatStr() << (uint32_t)result.statusCode << " " << httpStatusCodeToString(result.statusCode);
-				ESLog::es_detail(ESLog::FormatStr() << "Processed request\n{\n\t" << result.request.toShortString() << "\n}\n" << status << "\n");
+				ESLog::es_detail(ESLog::FormatStr() << "Processed request in " << result.timeTakenToCompleteMs << "ms" 
+										<< "\n{ \n\t" << result.request.toShortString() << "\n }\n" << status << "\n");
 				it = futures.erase(it);
 			}
 			else
@@ -72,10 +79,13 @@ namespace HTTP
 	HttpTaskResult HttpServer::handleHttpRequest(Connection& connection, std::vector<HttpHandlerBinding>& methodHandlers)
 	{
 		WIN_SET_THREAD_NAME(L"HTTP request handler");
+		Timer requestCompletionTimer{};
+		requestCompletionTimer.start();
+		
 		std::string requestString;
 		connection.receive(requestString);
 		if (requestString.empty())
-			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST };
+			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 
 		HttpStatusCode parserStatus = HttpStatusCode::SRV_ERROR;
 		HttpRequest request = parseHttpRequest(requestString, parserStatus);
@@ -86,10 +96,10 @@ namespace HTTP
 			if (parserStatus == HttpStatusCode::URI_TOO_LONG or 
 				parserStatus == HttpStatusCode::PAYLOAD_TOO_LARGE or 
 				parserStatus == HttpStatusCode::NO_REQUEST_LENGTH)
-				return HttpTaskResult{ .statusCode = parserStatus, .request = request };
+				return HttpTaskResult{ .statusCode = parserStatus, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs()};
 			if (request.method == HttpMethodType::UNRECOGNIZED_M)
-				return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = request };
-			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .request = request };
+				return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
+			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 		}
 		
 		for (HttpHandlerBinding& handler : methodHandlers)
@@ -99,12 +109,11 @@ namespace HTTP
 				const HttpResponse response = handler.execute(request);
 				std::string responseString = response.finalizeToString();
 				connection.send(responseString);
-				//ESLog::es_detail(ESLog::FormatStr() << "Responded with\n{\n" << responseString << "\n}");
-				return HttpTaskResult{ .statusCode = response.statusCode, .request = request };
+				return HttpTaskResult{ .statusCode = response.statusCode, .request = request, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 			}
 		}
 
-		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = request };
+		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 	}
 
 	HttpRequest HttpServer::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)
@@ -161,7 +170,9 @@ namespace HTTP
 			return HttpResponse::errorResponse(HttpStatusCode::METHOD_NOT_ALLLOWED);
 
 		// in dynamic mode, requests might be to rehydrate a page, or just part of a page instead of a whole file
+		ESLog::es_detail(ESLog::FormatStr() << "Getting file info for " << request.url);
 		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromExtension(request.url);
+
 		if (serverMode == ServerMode::Dynamic and 
 			(requestFileInfo.extensionEnum == CommonFileExt::NONE or
 			requestFileInfo.extensionEnum == CommonFileExt::HTML))

@@ -240,7 +240,7 @@ namespace HTTP
 		return std::string();
 	}
 
-	const FileFormatInfo& HttpFilesystem::fileFormatFromExtension(std::string fileExtension) const
+	FileFormatInfo HttpFilesystem::fileFormatFromExtension(std::string fileExtension) const
 	{
 		if (fileExtension[0] != '.')
 			fileExtension = ESLog::FormatStr() << "." << fileExtension;

@@ -109,7 +109,7 @@ namespace HTTP
 		size_t findFile(const std::filesystem::path& path) const; // paths may be matched without file extension
 		bool getFileAsString(size_t id, std::string& contentOut) const;
 		PathInfo getFileInfo(size_t id) const;
-		const FileFormatInfo& fileFormatFromExtension(std::string fileExtension) const;
+		FileFormatInfo fileFormatFromExtension(std::string fileExtension) const;
 		std::string makeContentTypeHeaderField(std::string fileExtension) const;
 	protected:
 		std::filesystem::path webroot{};
@@ -147,6 +147,7 @@ namespace HTTP
 	{
 		HttpStatusCode statusCode = HttpStatusCode::BAD_REQUEST;
 		HttpRequest request{};
+		double timeTakenToCompleteMs = 0.0;
 	};
 
 	struct HttpHandlerBinding

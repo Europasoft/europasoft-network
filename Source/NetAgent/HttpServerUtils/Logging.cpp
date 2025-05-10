@@ -68,10 +68,12 @@ namespace ESLog
 		std::thread([message]()
 			{
 				WIN_SET_THREAD_NAME(L"Log async");
-				getLogMutex().lock();
-				logToFile(message);
-				logToOutput(message);
-				getLogMutex().unlock();
+				if (getLogMutex().try_lock())
+				{
+					logToFile(message);
+					logToOutput(message);
+					getLogMutex().unlock();
+				}
 			}).detach();
 	}
 

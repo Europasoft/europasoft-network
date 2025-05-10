@@ -1,6 +1,7 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #ifdef _WIN32
 	//#define close(s) closesocket(s)
+	#define NOMINMAX // Prevent <windows.h> from defining min and max macros
 	#pragma once
 	#include <windows.h>
 	#include <processthreadsapi.h>
@@ -20,10 +21,4 @@
 #endif
 #ifndef SOCKET_ERROR
 	#define SOCKET_ERROR -1
-#endif
-#ifndef max
-	#define max(a,b)	(((a) > (b)) ? (a) : (b))
-#endif
-#ifndef min
-	#define min(a,b)	(((a) < (b)) ? (a) : (b))
 #endif

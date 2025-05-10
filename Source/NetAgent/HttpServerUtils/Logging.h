@@ -50,6 +50,8 @@ namespace ESLog
 
 	void logToOutput(std::string message);
 
+	void logToFileAndOutputAsync(std::string message);
+
 	void es_detail(std::string message);
 
 	void es_info(std::string message);
