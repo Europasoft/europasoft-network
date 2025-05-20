@@ -1,0 +1,466 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ce819157-bc18-4dca-aad0-0d618aa3c762}</ProjectGuid>
+    <Keyword>Linux</Keyword>
+    <RootNamespace>LinuxBearSSL</RootNamespace>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+    <LinuxProjectType>{2238F9CD-F817-4ECC-BD14-2524D2669B35}</LinuxProjectType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <RemoteRootDir>~/europasoft-server</RemoteRootDir>
+    <RemoteProjectRelDir>/</RemoteProjectRelDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <RemoteRootDir>~/europasoft-server</RemoteRootDir>
+    <RemoteProjectRelDir>/</RemoteProjectRelDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetExt>.a</TargetExt>
+    <OutDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/</OutDir>
+    <IntDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/intermediate/</IntDir>
+    <RemoteIntRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/intermediate/</RemoteIntRelDir>
+    <RemoteOutRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/</RemoteOutRelDir>
+    <RemoteDeployDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/deployment/</RemoteDeployDir>
+    <TargetName>BearSSL</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetExt>.a</TargetExt>
+    <OutDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/</OutDir>
+    <IntDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/intermediate/</IntDir>
+    <RemoteIntRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/intermediate/</RemoteIntRelDir>
+    <RemoteOutRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/</RemoteOutRelDir>
+    <RemoteDeployDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/deployment/</RemoteDeployDir>
+    <TargetName>BearSSL</TargetName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClInclude Include="..\inc\bearssl.h" />
+    <ClInclude Include="..\inc\bearssl_aead.h" />
+    <ClInclude Include="..\inc\bearssl_block.h" />
+    <ClInclude Include="..\inc\bearssl_ec.h" />
+    <ClInclude Include="..\inc\bearssl_hash.h" />
+    <ClInclude Include="..\inc\bearssl_hmac.h" />
+    <ClInclude Include="..\inc\bearssl_kdf.h" />
+    <ClInclude Include="..\inc\bearssl_pem.h" />
+    <ClInclude Include="..\inc\bearssl_prf.h" />
+    <ClInclude Include="..\inc\bearssl_rand.h" />
+    <ClInclude Include="..\inc\bearssl_rsa.h" />
+    <ClInclude Include="..\inc\bearssl_ssl.h" />
+    <ClInclude Include="..\inc\bearssl_x509.h" />
+    <ClInclude Include="..\inc\TLSInterface.h" />
+    <ClInclude Include="..\samples\chain-ec+rsa.h" />
+    <ClInclude Include="..\samples\chain-ec.h" />
+    <ClInclude Include="..\samples\chain-rsa.h" />
+    <ClInclude Include="..\samples\key-ec.h" />
+    <ClInclude Include="..\samples\key-rsa.h" />
+    <ClInclude Include="..\src\config.h" />
+    <ClInclude Include="..\src\inner.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\inc\TLSInterface.cpp" />
+    <ClCompile Include="..\samples\client_basic.c" />
+    <ClCompile Include="..\samples\custom_profile.c" />
+    <ClCompile Include="..\samples\server_basic.c" />
+    <ClCompile Include="..\src\aead\ccm.c" />
+    <ClCompile Include="..\src\aead\eax.c" />
+    <ClCompile Include="..\src\aead\gcm.c" />
+    <ClCompile Include="..\src\codec\ccopy.c" />
+    <ClCompile Include="..\src\codec\dec16be.c" />
+    <ClCompile Include="..\src\codec\dec16le.c" />
+    <ClCompile Include="..\src\codec\dec32be.c" />
+    <ClCompile Include="..\src\codec\dec32le.c" />
+    <ClCompile Include="..\src\codec\dec64be.c" />
+    <ClCompile Include="..\src\codec\dec64le.c" />
+    <ClCompile Include="..\src\codec\enc16be.c" />
+    <ClCompile Include="..\src\codec\enc16le.c" />
+    <ClCompile Include="..\src\codec\enc32be.c" />
+    <ClCompile Include="..\src\codec\enc32le.c" />
+    <ClCompile Include="..\src\codec\enc64be.c" />
+    <ClCompile Include="..\src\codec\enc64le.c" />
+    <ClCompile Include="..\src\codec\pemdec.c" />
+    <ClCompile Include="..\src\codec\pemenc.c" />
+    <ClCompile Include="..\src\ec\ecdsa_atr.c" />
+    <ClCompile Include="..\src\ec\ecdsa_default_sign_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_default_sign_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_default_vrfy_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_default_vrfy_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i15_bits.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i15_sign_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i15_sign_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i15_vrfy_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i15_vrfy_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i31_bits.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i31_sign_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i31_sign_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i31_vrfy_asn1.c" />
+    <ClCompile Include="..\src\ec\ecdsa_i31_vrfy_raw.c" />
+    <ClCompile Include="..\src\ec\ecdsa_rta.c" />
+    <ClCompile Include="..\src\ec\ec_all_m15.c" />
+    <ClCompile Include="..\src\ec\ec_all_m31.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_i15.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_i31.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_m15.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_m31.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_m62.c" />
+    <ClCompile Include="..\src\ec\ec_c25519_m64.c" />
+    <ClCompile Include="..\src\ec\ec_curve25519.c" />
+    <ClCompile Include="..\src\ec\ec_default.c" />
+    <ClCompile Include="..\src\ec\ec_keygen.c" />
+    <ClCompile Include="..\src\ec\ec_p256_m15.c" />
+    <ClCompile Include="..\src\ec\ec_p256_m31.c" />
+    <ClCompile Include="..\src\ec\ec_p256_m62.c" />
+    <ClCompile Include="..\src\ec\ec_p256_m64.c" />
+    <ClCompile Include="..\src\ec\ec_prime_i15.c" />
+    <ClCompile Include="..\src\ec\ec_prime_i31.c" />
+    <ClCompile Include="..\src\ec\ec_pubkey.c" />
+    <ClCompile Include="..\src\ec\ec_secp256r1.c" />
+    <ClCompile Include="..\src\ec\ec_secp384r1.c" />
+    <ClCompile Include="..\src\ec\ec_secp521r1.c" />
+    <ClCompile Include="..\src\hash\dig_oid.c" />
+    <ClCompile Include="..\src\hash\dig_size.c" />
+    <ClCompile Include="..\src\hash\ghash_ctmul.c" />
+    <ClCompile Include="..\src\hash\ghash_ctmul32.c" />
+    <ClCompile Include="..\src\hash\ghash_ctmul64.c" />
+    <ClCompile Include="..\src\hash\ghash_pclmul.c" />
+    <ClCompile Include="..\src\hash\ghash_pwr8.c" />
+    <ClCompile Include="..\src\hash\md5.c" />
+    <ClCompile Include="..\src\hash\md5sha1.c" />
+    <ClCompile Include="..\src\hash\mgf1.c" />
+    <ClCompile Include="..\src\hash\multihash.c" />
+    <ClCompile Include="..\src\hash\sha1.c" />
+    <ClCompile Include="..\src\hash\sha2big.c" />
+    <ClCompile Include="..\src\hash\sha2small.c" />
+    <ClCompile Include="..\src\int\i15_add.c" />
+    <ClCompile Include="..\src\int\i15_bitlen.c" />
+    <ClCompile Include="..\src\int\i15_decmod.c" />
+    <ClCompile Include="..\src\int\i15_decode.c" />
+    <ClCompile Include="..\src\int\i15_decred.c" />
+    <ClCompile Include="..\src\int\i15_encode.c" />
+    <ClCompile Include="..\src\int\i15_fmont.c" />
+    <ClCompile Include="..\src\int\i15_iszero.c" />
+    <ClCompile Include="..\src\int\i15_moddiv.c" />
+    <ClCompile Include="..\src\int\i15_modpow.c" />
+    <ClCompile Include="..\src\int\i15_modpow2.c" />
+    <ClCompile Include="..\src\int\i15_montmul.c" />
+    <ClCompile Include="..\src\int\i15_mulacc.c" />
+    <ClCompile Include="..\src\int\i15_muladd.c" />
+    <ClCompile Include="..\src\int\i15_ninv15.c" />
+    <ClCompile Include="..\src\int\i15_reduce.c" />
+    <ClCompile Include="..\src\int\i15_rshift.c" />
+    <ClCompile Include="..\src\int\i15_sub.c" />
+    <ClCompile Include="..\src\int\i15_tmont.c" />
+    <ClCompile Include="..\src\int\i31_add.c" />
+    <ClCompile Include="..\src\int\i31_bitlen.c" />
+    <ClCompile Include="..\src\int\i31_decmod.c" />
+    <ClCompile Include="..\src\int\i31_decode.c" />
+    <ClCompile Include="..\src\int\i31_decred.c" />
+    <ClCompile Include="..\src\int\i31_encode.c" />
+    <ClCompile Include="..\src\int\i31_fmont.c" />
+    <ClCompile Include="..\src\int\i31_iszero.c" />
+    <ClCompile Include="..\src\int\i31_moddiv.c" />
+    <ClCompile Include="..\src\int\i31_modpow.c" />
+    <ClCompile Include="..\src\int\i31_modpow2.c" />
+    <ClCompile Include="..\src\int\i31_montmul.c" />
+    <ClCompile Include="..\src\int\i31_mulacc.c" />
+    <ClCompile Include="..\src\int\i31_muladd.c" />
+    <ClCompile Include="..\src\int\i31_ninv31.c" />
+    <ClCompile Include="..\src\int\i31_reduce.c" />
+    <ClCompile Include="..\src\int\i31_rshift.c" />
+    <ClCompile Include="..\src\int\i31_sub.c" />
+    <ClCompile Include="..\src\int\i31_tmont.c" />
+    <ClCompile Include="..\src\int\i32_add.c" />
+    <ClCompile Include="..\src\int\i32_bitlen.c" />
+    <ClCompile Include="..\src\int\i32_decmod.c" />
+    <ClCompile Include="..\src\int\i32_decode.c" />
+    <ClCompile Include="..\src\int\i32_decred.c" />
+    <ClCompile Include="..\src\int\i32_div32.c" />
+    <ClCompile Include="..\src\int\i32_encode.c" />
+    <ClCompile Include="..\src\int\i32_fmont.c" />
+    <ClCompile Include="..\src\int\i32_iszero.c" />
+    <ClCompile Include="..\src\int\i32_modpow.c" />
+    <ClCompile Include="..\src\int\i32_montmul.c" />
+    <ClCompile Include="..\src\int\i32_mulacc.c" />
+    <ClCompile Include="..\src\int\i32_muladd.c" />
+    <ClCompile Include="..\src\int\i32_ninv32.c" />
+    <ClCompile Include="..\src\int\i32_reduce.c" />
+    <ClCompile Include="..\src\int\i32_sub.c" />
+    <ClCompile Include="..\src\int\i32_tmont.c" />
+    <ClCompile Include="..\src\int\i62_modpow2.c" />
+    <ClCompile Include="..\src\kdf\hkdf.c" />
+    <ClCompile Include="..\src\kdf\shake.c" />
+    <ClCompile Include="..\src\mac\hmac.c" />
+    <ClCompile Include="..\src\mac\hmac_ct.c" />
+    <ClCompile Include="..\src\rand\aesctr_drbg.c" />
+    <ClCompile Include="..\src\rand\hmac_drbg.c" />
+    <ClCompile Include="..\src\rand\sysrng.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_keygen.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_modulus.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_oaep_decrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_oaep_encrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pkcs1_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pkcs1_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_priv.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_privexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pss_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pss_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pub.c" />
+    <ClCompile Include="..\src\rsa\rsa_default_pubexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_keygen.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_modulus.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_oaep_decrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_oaep_encrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pkcs1_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pkcs1_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_priv.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_privexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pss_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pss_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pub.c" />
+    <ClCompile Include="..\src\rsa\rsa_i15_pubexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_keygen.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_keygen_inner.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_modulus.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_oaep_decrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_oaep_encrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pkcs1_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pkcs1_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_priv.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_privexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pss_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pss_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pub.c" />
+    <ClCompile Include="..\src\rsa\rsa_i31_pubexp.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_oaep_decrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_oaep_encrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_pkcs1_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_pkcs1_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_priv.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_pss_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_pss_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i32_pub.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_keygen.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_oaep_decrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_oaep_encrypt.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_pkcs1_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_pkcs1_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_priv.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_pss_sign.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_pss_vrfy.c" />
+    <ClCompile Include="..\src\rsa\rsa_i62_pub.c" />
+    <ClCompile Include="..\src\rsa\rsa_oaep_pad.c" />
+    <ClCompile Include="..\src\rsa\rsa_oaep_unpad.c" />
+    <ClCompile Include="..\src\rsa\rsa_pkcs1_sig_pad.c" />
+    <ClCompile Include="..\src\rsa\rsa_pkcs1_sig_unpad.c" />
+    <ClCompile Include="..\src\rsa\rsa_pss_sig_pad.c" />
+    <ClCompile Include="..\src\rsa\rsa_pss_sig_unpad.c" />
+    <ClCompile Include="..\src\rsa\rsa_ssl_decrypt.c" />
+    <ClCompile Include="..\src\settings.c" />
+    <ClCompile Include="..\src\ssl\prf.c" />
+    <ClCompile Include="..\src\ssl\prf_md5sha1.c" />
+    <ClCompile Include="..\src\ssl\prf_sha256.c" />
+    <ClCompile Include="..\src\ssl\prf_sha384.c" />
+    <ClCompile Include="..\src\ssl\ssl_ccert_single_ec.c" />
+    <ClCompile Include="..\src\ssl\ssl_ccert_single_rsa.c" />
+    <ClCompile Include="..\src\ssl\ssl_client.c" />
+    <ClCompile Include="..\src\ssl\ssl_client_default_rsapub.c" />
+    <ClCompile Include="..\src\ssl\ssl_client_full.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_aescbc.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_aesccm.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_aesgcm.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_chapol.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_descbc.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_ec.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_ecdsa.c" />
+    <ClCompile Include="..\src\ssl\ssl_engine_default_rsavrfy.c" />
+    <ClCompile Include="..\src\ssl\ssl_hashes.c" />
+    <ClCompile Include="..\src\ssl\ssl_hs_client.c" />
+    <ClCompile Include="..\src\ssl\ssl_hs_server.c" />
+    <ClCompile Include="..\src\ssl\ssl_io.c" />
+    <ClCompile Include="..\src\ssl\ssl_keyexport.c" />
+    <ClCompile Include="..\src\ssl\ssl_lru.c" />
+    <ClCompile Include="..\src\ssl\ssl_rec_cbc.c" />
+    <ClCompile Include="..\src\ssl\ssl_rec_ccm.c" />
+    <ClCompile Include="..\src\ssl\ssl_rec_chapol.c" />
+    <ClCompile Include="..\src\ssl\ssl_rec_gcm.c" />
+    <ClCompile Include="..\src\ssl\ssl_scert_single_ec.c" />
+    <ClCompile Include="..\src\ssl\ssl_scert_single_rsa.c" />
+    <ClCompile Include="..\src\ssl\ssl_server.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_full_ec.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_full_rsa.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_mine2c.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_mine2g.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_minf2c.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_minf2g.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_minr2g.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_minu2g.c" />
+    <ClCompile Include="..\src\ssl\ssl_server_minv2g.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_dec.c" />
+    <ClCompile Include="..\src\symcipher\aes_big_enc.c" />
+    <ClCompile Include="..\src\symcipher\aes_common.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_dec.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct64_enc.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_dec.c" />
+    <ClCompile Include="..\src\symcipher\aes_ct_enc.c" />
+    <ClCompile Include="..\src\symcipher\aes_pwr8.c" />
+    <ClCompile Include="..\src\symcipher\aes_pwr8_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_pwr8_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_pwr8_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_pwr8_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_dec.c" />
+    <ClCompile Include="..\src\symcipher\aes_small_enc.c" />
+    <ClCompile Include="..\src\symcipher\aes_x86ni.c" />
+    <ClCompile Include="..\src\symcipher\aes_x86ni_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\aes_x86ni_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\aes_x86ni_ctr.c" />
+    <ClCompile Include="..\src\symcipher\aes_x86ni_ctrcbc.c" />
+    <ClCompile Include="..\src\symcipher\chacha20_ct.c" />
+    <ClCompile Include="..\src\symcipher\chacha20_sse2.c" />
+    <ClCompile Include="..\src\symcipher\des_ct.c" />
+    <ClCompile Include="..\src\symcipher\des_ct_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\des_ct_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\des_support.c" />
+    <ClCompile Include="..\src\symcipher\des_tab.c" />
+    <ClCompile Include="..\src\symcipher\des_tab_cbcdec.c" />
+    <ClCompile Include="..\src\symcipher\des_tab_cbcenc.c" />
+    <ClCompile Include="..\src\symcipher\poly1305_ctmul.c" />
+    <ClCompile Include="..\src\symcipher\poly1305_ctmul32.c" />
+    <ClCompile Include="..\src\symcipher\poly1305_ctmulq.c" />
+    <ClCompile Include="..\src\symcipher\poly1305_i15.c" />
+    <ClCompile Include="..\src\x509\asn1enc.c" />
+    <ClCompile Include="..\src\x509\encode_ec_pk8der.c" />
+    <ClCompile Include="..\src\x509\encode_ec_rawder.c" />
+    <ClCompile Include="..\src\x509\encode_rsa_pk8der.c" />
+    <ClCompile Include="..\src\x509\encode_rsa_rawder.c" />
+    <ClCompile Include="..\src\x509\skey_decoder.c" />
+    <ClCompile Include="..\src\x509\x509_decoder.c" />
+    <ClCompile Include="..\src\x509\x509_knownkey.c" />
+    <ClCompile Include="..\src\x509\x509_minimal.c" />
+    <ClCompile Include="..\src\x509\x509_minimal_full.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\samples\cert-ee-ec+rsa.pem" />
+    <None Include="..\samples\cert-ee-ec.pem" />
+    <None Include="..\samples\cert-ee-rsa.pem" />
+    <None Include="..\samples\cert-ica-ec.pem" />
+    <None Include="..\samples\cert-ica-rsa.pem" />
+    <None Include="..\samples\cert-root-ec.pem" />
+    <None Include="..\samples\cert-root-rsa.pem" />
+    <None Include="..\samples\key-ee-ec.pem" />
+    <None Include="..\samples\key-ee-rsa.pem" />
+    <None Include="..\samples\key-ica-ec.pem" />
+    <None Include="..\samples\key-ica-rsa.pem" />
+    <None Include="..\samples\key-root-ec.pem" />
+    <None Include="..\samples\key-root-rsa.pem" />
+    <None Include="..\src\codec\pemdec.t0" />
+    <None Include="..\src\ssl\ssl_hs_client.t0" />
+    <None Include="..\src\ssl\ssl_hs_common.t0" />
+    <None Include="..\src\ssl\ssl_hs_server.t0" />
+    <None Include="..\src\x509\asn1.t0" />
+    <None Include="..\src\x509\skey_decoder.t0" />
+    <None Include="..\src\x509\x509_decoder.t0" />
+    <None Include="..\src\x509\x509_minimal.t0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\samples\README.txt" />
+  </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)/../inc;$(ProjectDir)/../samples;$(ProjectDir)/../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++20</CppLanguageStandard>
+      <CLanguageStandard>gnu11</CLanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)/../inc;$(ProjectDir)/../samples;$(ProjectDir)/../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++20</CppLanguageStandard>
+      <CLanguageStandard>gnu11</CLanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

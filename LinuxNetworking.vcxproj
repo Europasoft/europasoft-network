@@ -87,11 +87,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <RemoteRootDir>~/NetworkingLinux</RemoteRootDir>
+    <RemoteRootDir>~/europasoft-server</RemoteRootDir>
+    <RemoteProjectRelDir>/</RemoteProjectRelDir>
+    <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
-    <RemoteRootDir>~/NetworkingLinux</RemoteRootDir>
+    <RemoteRootDir>~/europasoft-server</RemoteRootDir>
+    <RemoteProjectRelDir>/</RemoteProjectRelDir>
+    <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -106,20 +110,38 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <RemoteCppCompileToolExe>g++</RemoteCppCompileToolExe>
+    <OutDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/</OutDir>
+    <IntDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/intermediate/</IntDir>
+    <TargetName>EuropasoftServer</TargetName>
+    <RemoteDeployDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/deployment</RemoteDeployDir>
+    <TargetExt>.out</TargetExt>
+    <RemoteIntRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/intermediate/</RemoteIntRelDir>
+    <RemoteOutRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/</RemoteOutRelDir>
+    <CopyAdditionalIncludes>true</CopyAdditionalIncludes>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <RemoteCppCompileToolExe>g++</RemoteCppCompileToolExe>
+    <OutDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/</OutDir>
+    <IntDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/intermediate/</IntDir>
+    <TargetName>EuropasoftServer</TargetName>
+    <RemoteDeployDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/deployment</RemoteDeployDir>
+    <TargetExt>.out</TargetExt>
+    <RemoteIntRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/intermediate/</RemoteIntRelDir>
+    <RemoteOutRelDir>$(RemoteProjectRelDir)/$(Platform)_$(Configuration)_build/</RemoteOutRelDir>
+    <CopyAdditionalIncludes>true</CopyAdditionalIncludes>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++20</CppLanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Source;$(ProjectDir)\Source\NetAgent\HttpServerUtils\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CLanguageStandard>gnu11</CLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <CppLanguageStandard>c++20</CppLanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Source;$(ProjectDir)\Source\NetAgent\HttpServerUtils\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CLanguageStandard>gnu11</CLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -4,8 +4,22 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Networking", "Networking.vcxproj", "{CB880C7D-0541-4B4E-BE06-A314A285456C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548} = {75EAE62B-C584-4FBA-8B1D-A4D8225E0548}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinuxNetworking", "LinuxNetworking.vcxproj", "{14C6638A-209C-4AD7-B320-8DAC1311282F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762} = {CE819157-BC18-4DCA-AAD0-0D618AA3C762}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Linux", "Linux", "{8AED132D-29F5-4055-BB85-02F0EACDD997}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Windows", "Windows", "{17ECC5C6-BB9E-4BFF-938D-763C520A3CE6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinuxBearSSL", "Source\NetAgent\HttpServerUtils\BearSSL\BearSSL_ProjectFiles_VS\LinuxBearSSL.vcxproj", "{CE819157-BC18-4DCA-AAD0-0D618AA3C762}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BearSSL", "Source\NetAgent\HttpServerUtils\BearSSL\BearSSL_ProjectFiles_VS\BearSSL.vcxproj", "{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,9 +55,40 @@ Global
 		{14C6638A-209C-4AD7-B320-8DAC1311282F}.Release|x86.ActiveCfg = Release|x86
 		{14C6638A-209C-4AD7-B320-8DAC1311282F}.Release|x86.Build.0 = Release|x86
 		{14C6638A-209C-4AD7-B320-8DAC1311282F}.Release|x86.Deploy.0 = Release|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x64.ActiveCfg = Debug|x64
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x64.Build.0 = Debug|x64
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x64.Deploy.0 = Debug|x64
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x86.ActiveCfg = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x86.Build.0 = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug Remote Linux|x86.Deploy.0 = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug|x64.ActiveCfg = Debug|x64
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug|x86.ActiveCfg = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug|x86.Build.0 = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Debug|x86.Deploy.0 = Debug|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Release|x64.ActiveCfg = Release|x64
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Release|x86.ActiveCfg = Release|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Release|x86.Build.0 = Release|x86
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762}.Release|x86.Deploy.0 = Release|x86
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug Remote Linux|x64.ActiveCfg = Debug|x64
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug Remote Linux|x86.ActiveCfg = Debug|Win32
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug Remote Linux|x86.Build.0 = Debug|Win32
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug|x64.ActiveCfg = Debug|x64
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug|x64.Build.0 = Debug|x64
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug|x86.ActiveCfg = Debug|Win32
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Debug|x86.Build.0 = Debug|Win32
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Release|x64.ActiveCfg = Release|x64
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Release|x64.Build.0 = Release|x64
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Release|x86.ActiveCfg = Release|Win32
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CB880C7D-0541-4B4E-BE06-A314A285456C} = {17ECC5C6-BB9E-4BFF-938D-763C520A3CE6}
+		{14C6638A-209C-4AD7-B320-8DAC1311282F} = {8AED132D-29F5-4055-BB85-02F0EACDD997}
+		{CE819157-BC18-4DCA-AAD0-0D618AA3C762} = {8AED132D-29F5-4055-BB85-02F0EACDD997}
+		{75EAE62B-C584-4FBA-8B1D-A4D8225E0548} = {17ECC5C6-BB9E-4BFF-938D-763C520A3CE6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D52B1E94-C0CF-4309-9BFC-32FA55AA5648}
