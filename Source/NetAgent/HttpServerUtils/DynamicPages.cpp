@@ -48,11 +48,11 @@ namespace HTTP
 			document.body.insertBefore(fragment, document.body.childNodes[0]);
 		}
 
-		var firstHydrationDone = false;
+		var es_firstHydrationDone = false;
 
 		function firstHydrationWaitTimeout()
 		{
-			if (!firstHydrationDone)
+			if (!es_firstHydrationDone)
 				addBodyElement("<p style='font-size: calc(16px + 0.2vw);'>It is taking longer than expected to load the page</p>");
 		}
 		setTimeout(firstHydrationWaitTimeout, 8000)
@@ -64,6 +64,7 @@ namespace HTTP
 	{
 		std::string script = R"JS(
 		<script name="es-bootstrap-dynamic">
+		// Immediately invoked
 		(function ()
 		{
 			// Load the current page content dynamically
@@ -80,16 +81,42 @@ namespace HTTP
 						const currentMain = document.querySelector('main');
 					
 						if (newMain && currentMain)
-							currentMain.innerHTML = newMain.innerHTML;
+						{
+							currentMain.innerHTML = newMain.innerHTML; // Update page content without hard reload
+
+							// Ensure that dynamically loaded scripts will run
+							const scripts = currentMain.querySelectorAll('script');
+							scripts.forEach(oldScript => 
+							{
+								const newScript = document.createElement('script');
+							
+								// Preserve attributes like src, type, etc.
+								for (let attr of oldScript.attributes)
+									newScript.setAttribute(attr.name, attr.value);
+							
+								// Copy inline script content
+								if (!oldScript.src)
+									newScript.textContent = oldScript.textContent;
+							
+								// Replace the old script node to trigger execution
+								oldScript.parentNode.replaceChild(newScript, oldScript);
+							});
+							console.log("Finished processing dynamically loaded scripts");
+						}
 					
-						// Optionally update the document title
+						// Update document title
 						const newTitle = doc.querySelector('title');
-						if (newTitle) document.title = newTitle.innerText;
+						if (newTitle)
+							document.title = newTitle.innerText;
 					
 						if (!replace)
 							history.pushState(null, '', path);
 						
-						firstHydrationDone = true;
+						if (!es_firstHydrationDone)
+						{
+							console.log("First hydration done");
+							es_firstHydrationDone = true;
+						}
 					})
 					.catch(err => console.error('page load error:', err));
 			}
@@ -139,16 +166,56 @@ namespace HTTP
 
 	void makeHtmlDynamicPage(std::string& originalHtmlPage, const std::string& uri)
 	{
-		auto bodyStart = originalHtmlPage.find("<body>");
-		auto bodyEnd = originalHtmlPage.find("</body>");
-		if (bodyStart == std::string::npos or bodyEnd == std::string::npos)
+		size_t bodyStart = originalHtmlPage.find("<body");
+		if (bodyStart == std::string::npos)
 		{
-			ESLog::es_error(ESLog::FormatStr() << "File '" << uri << "' could not be parsed, no body tag found (tags cannot contain whitespace)");
+			ESLog::es_error(ESLog::FormatStr() << "File '" << uri << "' could not be parsed, no body tag found");
 			return;
 		}
-		bodyStart += 6;
-		std::string body = originalHtmlPage.substr(bodyStart, bodyEnd - bodyStart);
-		originalHtmlPage = (ESLog::FormatStr() << "<main>" << body << "</main>");
+
+		// find the position of the closing > of the <body> tag to capture attributes
+		size_t bodyTagEnd = originalHtmlPage.find(">", bodyStart);
+		if (bodyTagEnd == std::string::npos)
+		{
+			ESLog::es_error(ESLog::FormatStr() << "File '" << uri << "' could not be parsed, body opening tag was not closed");
+			return;
+		}
+
+		// extract <body> tag, with attributes if present
+		std::string bodyTag = removeSurroundingWhitespace(originalHtmlPage.substr(bodyStart, bodyTagEnd - bodyStart + 1));
+
+		// find the closing </body> tag
+		size_t bodyEnd = originalHtmlPage.find("</body>", bodyTagEnd);
+		if (bodyEnd == std::string::npos)
+		{
+			ESLog::es_error(ESLog::FormatStr() << "File '" << uri << "' could not be parsed, closing tag for <body> was not found");
+			return;
+		}
+
+		// extract content inside <body>...</body>
+		std::string bodyContent = originalHtmlPage.substr(bodyTagEnd + 1, bodyEnd - bodyTagEnd - 1);
+
+		// inject body content into main (with attributes if present)
+		std::string openTagAttributes;
+		auto attributesStart = bodyTag.find("body");
+		auto attributesEnd = bodyTag.find(">");
+		if (attributesStart != std::string::npos and attributesEnd != std::string::npos)
+		{
+			openTagAttributes = bodyTag.substr(attributesStart + 5, attributesEnd - (attributesStart + 5));
+		}
+		originalHtmlPage = (ESLog::FormatStr() << ("<main " + openTagAttributes + ">") << bodyContent << "</main>");
+
+	}
+
+	std::string removeSurroundingWhitespace(const std::string str)
+	{
+		size_t start = str.find_first_not_of(" \t\n\r\f\v");
+		if (start == std::string::npos) 
+			return std::string();
+		size_t end = str.find_last_not_of(" \t\n\r\f\v");
+		if (start == std::string::npos)
+			return std::string();
+		return str.substr(start, end - start + 1);
 	}
 
 	
