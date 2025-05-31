@@ -42,7 +42,7 @@ namespace Sockets
 	bool setupStream(const std::string& hostname, const std::string& port, SOCKET& socketOut);
 	
 	// sends data over a socket
-	bool sendData(SOCKET& s, const char* data, const size_t& dataSize);
+	size_t sendData(SOCKET& s, const char* data, const size_t& dataSize);
 
 	bool createListenSocket(SOCKET& s, const std::string& port, const std::string& hostname = std::string());
 

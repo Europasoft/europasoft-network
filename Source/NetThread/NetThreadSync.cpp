@@ -7,83 +7,110 @@
 #include <new>
 #include <stdexcept>
 
-NetBuffer::NetBuffer(size_t allocSize)
+NetBufferAdvanced::NetBufferAdvanced(size_t allocSize)
 {
-    std::unique_lock<std::recursive_mutex> lock;
-    getBuffer(lock);
+	Lock lock = Lock(m);
     reserve(allocSize, lock);
 }
 
-NetBuffer::NetBuffer(NetBuffer&& src) noexcept
-{
-    buffer = src.buffer;
-    bufferSize = src.bufferSize;
-    dataSize = src.dataSize;
-    src.buffer = nullptr;
-    src.bufferSize = src.dataSize = 0;
-}
-
-NetBuffer::NetBuffer(const NetBuffer& src)
-{
-    if (!src.buffer or !src.dataSize or !src.bufferSize) { return; }
-    std::unique_lock<std::recursive_mutex> lock;
-    getBuffer(lock);
-    if (reserve(src.bufferSize, lock))
-		copyFrom(src.buffer, src.dataSize, lock);
-}
-
-NetBuffer::~NetBuffer() 
+NetBufferAdvanced::~NetBufferAdvanced()
 { 
     free();
 }
 
-void NetBuffer::free()
+void NetBufferAdvanced::free()
 { 
-    if (buffer) { delete[] buffer; }
+	// wipe buffer content before freeing, just in case
+	if (buffer and bufferSize > 0)
+		memset(buffer, 0x00, bufferSize);
+	// deallocate buffer
+    if (buffer) 
+		delete[] buffer;
     buffer = nullptr;
-    bufferSize = dataSize = 0;
+    bufferSize = 0;
 }
 
-size_t NetBuffer::getBufMax() { return (std::numeric_limits<size_t>::max)(); }
-
-bool NetBuffer::reserve(size_t newSize, const Lock& lock)
+void NetBufferAdvanced::reserve(size_t required, const Lock& lock)
 {
 	verifyLock(lock);
-    if (newSize > getBufMax()) { return false; }
-    if (newSize <= bufferSize) { return true; }
+    if (required <= unwritten())
+		{ return; }
+
     // allocate a new buffer, copy existing data (if any), replace old buffer
-    auto* newBuffer = new(std::nothrow) char[newSize];
+	const size_t newSize = unread() + required;
+    auto* newBuffer = new(std::nothrow) char[newSize + sizeof(ES_CANARY_VALUE_U8)];
+	newBuffer[newSize] = ES_CANARY_VALUE_U8;
 	if (not newBuffer)
-		return false;
-	if (dataSize > 0 && buffer && dataSize <= newSize)
-		memcpy(newBuffer, buffer, dataSize);
-    if (buffer) { delete[] buffer; }
+		{ throw std::runtime_error("alloc fail"); }
+
+	if (unread() > 0 and buffer)
+	{
+		assert((newBuffer + unread()) <= newBuffer + newSize);
+		memcpy(newBuffer, buffer + readPos, unread());
+	}
+    if (buffer)
+		{ delete[] buffer; }
     buffer = newBuffer;
     bufferSize = newSize;
-    return true;
+	writePos = unread();
+	readPos = 0;
 }
 
-bool NetBuffer::copyFrom(const char* data, size_t size, const Lock& lock)
+void NetBufferAdvanced::written(size_t opSize)
 {
-    verifyLock(lock);
-    assert(dataSize == 0 && "copying into buffer would overwrite existing data");
-    if (dataSize || !data || !size) { return false; }
-
-    if (!reserve(size, lock)) { return false; }
-    memcpy(buffer, data, size);
-    dataSize = size;
-    return true;
+	verifyRange(writePos, opSize);
+	writePos += opSize;
+	if (writePos > bufferSize)
+		throw std::runtime_error("buffer overflow");
 }
 
-void NetBuffer::setDataSize(size_t newSize)
+void NetBufferAdvanced::read(size_t opSize)
 {
-    Sockets::Lock lock; 
-    getBuffer(lock);
-    dataSize = newSize;
-};
+	verifyRange(readPos, opSize);
+	readPos += opSize;
+	assert(readPos <= bufferSize and readPos <= writePos);
+	if (readPos == writePos)
+	{
+		memcpy(buffer, (buffer + writePos), (bufferSize - writePos));
+		readPos = 0;
+		writePos = 0;
+	}
+}
 
-void NetBuffer::verifyLock(const Lock& lock) const
+void NetBufferAdvanced::verifyLock(const Lock& lock) const
 {
 	if (not lock.owns_lock() and lock.mutex() == &m)
-		throw std::logic_error("Invalid or missing lock for NetBuffer");
+		throw std::runtime_error("Invalid or missing lock for NetBuffer");
+}
+
+void NetBufferAdvanced::verifyRange(size_t startOffset, size_t size)
+{
+	assert((startOffset == readPos) or (startOffset == writePos));
+	if ((startOffset + size) > bufferSize)
+		throw std::runtime_error("range exceeded buffer size");
+	const uint8_t canary = *((uint8_t*)(buffer + bufferSize));
+	assert(canary == ES_CANARY_VALUE_U8);
+	if (canary != ES_CANARY_VALUE_U8)
+		throw std::runtime_error("buffer canary value was incorrect, possible buffer overflow");
+}
+
+NetBufferView::~NetBufferView()
+{
+	viewReportDestroyed();
+	const bool accessFail = (wasValid and not accessPerformed);
+	assert((not accessFail) && "buffer view was destroyed before data access was registered");
+	if (accessFail)
+	{
+		std::abort();
+	}
+}
+void NetBufferView::verifyBufferRange()
+{
+	assert(parentBuffer != nullptr);
+	parentBuffer->verifyView(*this);
+}
+void NetBufferView::viewReportDestroyed()
+{
+	if (parentBuffer != nullptr)
+		parentBuffer->decrementViewCount();
 }

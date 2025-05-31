@@ -77,9 +77,10 @@ namespace Sockets
         return cr;
     }
 
-    bool sendData(SOCKET& s, const char* data, const size_t& dataSize)
+    size_t sendData(SOCKET& s, const char* data, const size_t& dataSize)
     {
-        return send(s, data, dataSize, 0) != SOCKET_ERROR;
+		const size_t bytesSent = send(s, data, dataSize, 0);
+		return (bytesSent != SOCKET_ERROR) ? bytesSent : 0;
     }
 
     bool createListenSocket(SOCKET& s, const std::string& port, const std::string& hostname)
@@ -172,6 +173,7 @@ namespace Sockets
     }
     void threadSleep(int milliseconds)
     {
+		assert(not (milliseconds < 0 || milliseconds > 1000000));
 		std::this_thread::sleep_for(std::chrono::duration<long long, std::milli>(milliseconds));
     }
 }

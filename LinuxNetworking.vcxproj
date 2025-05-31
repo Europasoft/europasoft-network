@@ -62,6 +62,11 @@
     <ClCompile Include="Source\Networking.cpp" />
     <ClCompile Include="Source\Sockets\Sockets.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Source\NetAgent\HttpServerUtils\BearSSL\BearSSL_ProjectFiles_VS\LinuxBearSSL.vcxproj">
+      <Project>{ce819157-bc18-4dca-aad0-0d618aa3c762}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{14c6638a-209c-4ad7-b320-8dac1311282f}</ProjectGuid>
     <Keyword>Linux</Keyword>

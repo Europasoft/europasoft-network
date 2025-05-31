@@ -1,12 +1,20 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #include "StreamThread.h"
 #include "NetAgent/HttpServerUtils/Logging.h"
+#include "NetAgent/HttpServerUtils/BearSSL/inc/TLSInterface.h"
+#include "NetAgent/Agent.h"
 #include <cassert>
 #include <limits.h>
 #include <cstring>
+#include <array>
 
-StreamThread::StreamThread(size_t sendBufferSize, size_t receiveBufferSize)
-    : sendBuffer{ sendBufferSize }, recvBuffer{ receiveBufferSize } {}
+#include <iostream>
+
+StreamThread::StreamThread(size_t sendBufferSize, size_t receiveBufferSize, StreamEncryptionMode encryptMode)
+    : sendBuffer{ sendBufferSize }, recvBuffer{ receiveBufferSize }
+{
+	encryption.init(encryptMode);
+}
 
 StreamThread::~StreamThread() 
 { 
@@ -14,11 +22,10 @@ StreamThread::~StreamThread()
     thread.join();
 }
 
-void StreamThread::start(std::string_view hostname_, std::string_view port_, size_t connectTimeout_)
+void StreamThread::start(std::string_view hostname_, std::string_view port_)
 {
     hostname = hostname_;
     port = port_;
-    connectTimeout = connectTimeout_;
     start(INVALID_SOCKET);
 }
 
@@ -47,7 +54,7 @@ void StreamThread::threadMain()
         Timer t;
         t.start();
         SOCKET s;
-        while (!t.checkTimeout(connectTimeout))
+        while (!t.checkTimeout(settings->clientConnectTimeoutSec))
         {
             if (Sockets::setupStream(hostname, port, s))
             {
@@ -66,7 +73,7 @@ void StreamThread::threadMain()
 
 	{
 		Lock socketLock;
-		if (not Sockets::setReceiveTimeout(socket.get(socketLock), 10000))
+		if (not Sockets::setReceiveTimeout(socket.get(socketLock), settings->socketMaxReceiveWaitMs))
 			terminate = true;
 	}
 	lastComTimer.start();
@@ -74,103 +81,268 @@ void StreamThread::threadMain()
     // thread main loop
     while (!terminate)
     {
+		bool didSend, didRecv;
         // send
-        if (sendBuffer.getDataSize() > 0)
-        {
-            Lock socketLock, bufferLock;
-            SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of block
-            if (Sockets::sendData(s, sendBuffer.getBuffer(bufferLock), sendBuffer.getDataSize()))
-            { 
-                sendBuffer.setDataSize(0); // data sent, mark empty
-				lastComTimer.start();
-            }
-        }
+		if (encryption.enabled())
+			didSend = threadSendDataTLS(lastComTimer, terminate);
+		else
+			didSend = threadSendData(lastComTimer, terminate);
 
         // receive
-        if (recvBuffer.getDataSize() == 0)
-        {
-            Lock socketLock;
-            SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of scope
-            auto recvSize = Sockets::getReceiveSize(s);
-            if (recvSize > 0)
-            {
-				if (recvSize > 5e7)
-				{
-					terminate = true; // end the connection if the network buffer grows too large
-					ESLog::es_detail("Connection thread terminating: received data too large");
-				}
-				else
-				{
-					Lock bufferLock;
-					auto* buffer = recvBuffer.getBuffer(bufferLock);
-					if (recvBuffer.reserve(recvSize, bufferLock))
-					{
-						recvSize = Sockets::receiveData(s, buffer, recvSize);
-						if (recvSize > 0)
-						{
-							recvBuffer.setDataSize(recvSize);
-							lastComTimer.start();
-						}
-						else if (recvSize < 0)
-						{
-							terminate = true;
-							ESLog::es_detail("Connection thread terminating: receive failure");
-						}
-					}
-					else
-					{
-						terminate = true;
-						ESLog::es_error("Connection thread terminating: receive buffer allocation failed");
-					}
-				}
-            }
-        }
+		if (encryption.enabled())
+			didRecv = threadReceiveDataTLS(lastComTimer, terminate);
+		else
+			didRecv = threadReceiveData(lastComTimer, terminate);
+
+		updateBuffersTLS(recvBuffer, sendBuffer, terminate);
+
 		const double delta = lastComTimer.getElapsed();
-		if (delta > 10.f)
+		if (delta > settings->communicationGapMaxSec)
 		{
 			terminate = true;
 			ESLog::es_detail("Connection thread terminating: comms delta timeout");
 		}
-		else if (delta > 1.5f)
+		else if (delta > settings->communicationGapSlowdownDelaySec)
 		{
-			Sockets::threadSleep(50); // idle the thread if no communication has happened in a while
+			Sockets::threadSleep(settings->communicationGapSlowdownAmountMs); // idle the thread if no communication has happened in a while
 		}
-        
-        terminate = forceTerminate || terminate;
+		else if (not (didSend or didRecv))
+		{
+			Sockets::threadSleep(5); // idle the thread if no communication happened this iteration
+		}
+
+        terminate = forceTerminate or terminate;
     }
     streamConnected = false;
 }
 
+// when using TLS, data is sent from the encryption library buffer
+bool StreamThread::threadSendDataTLS(Timer& lastComTimer, bool& terminate)
+{
+	assert(encryption.enabled());
+
+	// TODO: small optimization: could avoid copying the data here
+	Lock socketLock;
+	std::string encrypted;
+	if ((not encryption.context->getEncryptedOutgoing(encrypted)) or encrypted.size() == 0)
+	{
+		return false;
+	}
+
+	SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of scope
+	// send using encryption library as the data source
+	// TODO: all the data might not be sent at once, in that case some will be lost (could be handled better)
+	const size_t sizeSent = Sockets::sendData(s, encrypted.c_str(), encrypted.size());
+	if (sizeSent != encrypted.size())
+	{
+		ESLog::es_detail("Connection thread terminating: attempt to send failed");
+		terminate = true;
+		return false;
+	}
+
+	lastComTimer.start();
+	return true;
+}
+
+// when unencrypted, send data from the send buffer
+bool StreamThread::threadSendData(Timer& lastComTimer, bool& terminate)
+{
+	assert(not encryption.enabled());
+	Lock socketLock, bufferLock;
+	size_t readable = 0;
+	auto* buf = sendBuffer.getBufferForRead(bufferLock, readable);
+	if (not (readable and buf))
+		return false;
+
+	SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of scope
+	// using the send buffer directly
+	const size_t sizeSent = Sockets::sendData(s, buf, readable);
+	sendBuffer.read(sizeSent);
+	if (not sizeSent)
+	{
+		ESLog::es_detail("Connection thread terminating: attempt to send returned socket error");
+		terminate = true;
+		return false;
+	}
+
+	lastComTimer.start();
+	return true;
+}
+
+// when using TLS data is received and sent to the encryption library
+bool StreamThread::threadReceiveDataTLS(Timer& lastComTimer, bool& terminate)
+{
+	assert(encryption.enabled());
+
+	Lock socketLock;
+	SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of scope
+
+	// get the size available to receive on socket
+	auto canRecvSize = Sockets::getReceiveSize(s);
+	if (canRecvSize == 0 or not encryption.context->canPushIncoming())
+	{
+		return false;
+	}
+	if (canRecvSize > 5e7)
+	{
+		terminate = true; // end the connection if the network buffer grows too large
+		ESLog::es_detail("Connection thread terminating: received data too large");
+		return false;
+	}
+
+	// determine the size to receive
+	const size_t bufferMax = encryption.context->getPushMaxSizeIncoming();
+	const size_t sizeToReceive = min(bufferMax, canRecvSize);
+
+	// allocate a temporary buffer to hold encrypted data
+	// TODO: small optimization: could avoid copying the data here
+	std::unique_ptr<char[]> encrypted = std::unique_ptr<char[]>(new char[sizeToReceive]);
+	// receive
+	size_t receivedSize = Sockets::receiveData(s, encrypted.get(), sizeToReceive);
+	// push received data to encryption library
+	encryption.context->pushEncryptedIncoming(encrypted.get(), receivedSize);
+	lastComTimer.start();
+	return true;
+}
+
+// when unencrypted, receive into the receive buffer
+bool StreamThread::threadReceiveData(Timer& lastComTimer, bool& terminate)
+{
+	assert(not encryption.enabled());
+	Lock socketLock, bufferLock;
+	SOCKET s = socket.get(socketLock); // lock socket mutex, released at end of scope
+	// get the size available to receive on socket
+	auto sizeToReceive = Sockets::getReceiveSize(s);
+
+	if (sizeToReceive == 0)
+		return false;
+	if (sizeToReceive > 5e7)
+	{
+		terminate = true; // end the connection if the network buffer grows too large
+		ESLog::es_detail("Connection thread terminating: received data too large");
+		return false;
+	}
+
+	auto* buf = recvBuffer.getBufferForWrite(bufferLock, sizeToReceive);
+	if (not buf)
+	{
+		terminate = true;
+		ESLog::es_error("Connection thread terminating: receive buffer allocation failed");
+		return false;
+	}
+
+	// write received data directly to the receive buffer
+	size_t receivedSize = Sockets::receiveData(s, buf, sizeToReceive);
+	recvBuffer.written(receivedSize);
+	lastComTimer.start();
+}
+
+// when using TLS the encryption buffers must communicate with the regular buffers
+void StreamThread::updateBuffersTLS(NetBufferAdvanced& recvBuffer, NetBufferAdvanced& sendBuffer, bool& terminate)
+{
+	if (not encryption.enabled())
+		return;
+
+	if (encryption.context->isClosed())
+	{
+		ESLog::es_detail("Connection thread terminating: encryption failure");
+		terminate = true;
+		return;
+	}
+
+	// push data to be encrypted, from send buffer
+	if (encryption.context->canPushOutgoing())
+	{
+		const size_t pushSizeMax = encryption.context->getPushMaxSizeOutgoing();
+		size_t pushableSize = 0;
+		Lock sendBufferLock;
+		auto* buf = sendBuffer.getBufferForRead(sendBufferLock, pushableSize);
+		if (pushableSize > 0 and pushSizeMax > 0 and buf)
+		{
+			const size_t sizeToPush = ESMin(pushableSize, pushSizeMax);
+			const size_t sizePushed = encryption.context->pushOutgoing(buf, sizeToPush);
+			if (sizePushed != sizeToPush)
+				ESLog::es_error("Failed to push data to encryption buffer");
+			sendBuffer.read(sizePushed);
+			//ESLog::es_detail(ESLog::FormatStr() << "To be encrypted: '" << std::string(buf, sizeToPush) << "'");
+		}
+	}
+
+	// get decrypted data, to receive buffer
+	std::string incomingDecrypted;
+	if (encryption.context->getDecryptedIncoming(incomingDecrypted))
+	{
+		Lock recvBufferLock;
+		auto* buf = recvBuffer.getBufferForWrite(recvBufferLock, incomingDecrypted.size());
+		if (buf and incomingDecrypted.size())
+		{
+			memcpy(buf, incomingDecrypted.data(), incomingDecrypted.size());
+			recvBuffer.written(incomingDecrypted.size());
+			//ESLog::es_detail(ESLog::FormatStr() << "Decrypted: '" << incomingDecrypted << "'");
+		}
+	}
+	
+}
+
+// public: must be synchronized
+
 bool StreamThread::queueSend(std::string_view data)
 {
-    assert(streamConnected && data.size() <= sendBuffer.getBufMax() && "cannot send data");
-    if (!streamConnected || !data.size() || sendBuffer.getDataSize() > 0 || forceTerminate) { return false; }
+	if (data.size() == 0)
+		return false;
 
-    Lock lock;
-    sendBuffer.getBuffer(lock);
-    return sendBuffer.copyFrom(data.data(), data.size(), lock);
+	Lock l;
+	auto* buf = sendBuffer.getBufferForWrite(l, data.size());
+	if (buf)
+	{
+		memcpy(buf, data.data(), data.size());
+		sendBuffer.written(data.size());
+		return true;
+	}
+	return false;
 }
 
+// public: must be synchronized
 void StreamThread::getReceiveBuffer(std::string& data) 
 {
-    if (recvBuffer.getDataSize() <= 0) { return; }
-    Lock lock;
-    data = std::string(recvBuffer.getBuffer(lock), recvBuffer.getDataSize());
-    recvBuffer.setDataSize(0);
+	Lock l;
+	size_t readable = 0;
+	auto* buf = recvBuffer.getBufferForRead(l, readable);
+	if (buf and readable)
+	{
+		data = std::string(buf, readable);
+		recvBuffer.read(readable);
+	}
 }
 
+// public
 size_t StreamThread::getReceiveDataSize() const
 {
-	return recvBuffer.getDataSize();
+	Lock l;
+	const size_t available = recvBuffer.peekReadSize(l);
+	return available;
 }
 
-size_t StreamThread::getReceiveBuffer(char* dstBuffer, const size_t& dstBufferSize)
+void StreamEncryptionState::init(StreamEncryptionMode encryptMode)
 {
-    auto size = recvBuffer.getDataSize();
-    if (size <= 0) { return 0; }
-    assert(dstBufferSize >= size && "destination buffer too small, data will be lost");
-    Lock bl;
-    memcpy(dstBuffer, recvBuffer.getBuffer(bl), size);
-    recvBuffer.setDataSize(0); // mark as empty ("was read")
-    return size;
+	mode = encryptMode;
+	if (not enabled())
+		return;
+	// TODO: load certificate chain from file and detect cert type
+	// initialize encryption library
+	context = std::make_unique<Encryption::TLSContext>(Encryption::TLSKeyType::RSA, Encryption::CipherSuiteMode::FULL);
 }
+
+bool StreamEncryptionState::enabled() const
+{
+	return mode != StreamEncryptionMode::NoEncryption;
+}
+
+void StreamThread::updateSettings(const std::shared_ptr<NetAgentSettings>& settingsNew)
+{
+	settings = settingsNew;
+}
+
+
+
+

@@ -46,6 +46,11 @@
     <ClInclude Include="Source\Sockets\PlatformMacros.h" />
     <ClInclude Include="Source\Sockets\Sockets.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Source\NetAgent\HttpServerUtils\BearSSL\BearSSL_ProjectFiles_VS\BearSSL.vcxproj">
+      <Project>{75eae62b-c584-4fba-8b1d-a4d8225e0548}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -72,6 +77,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -80,6 +86,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <SpectreMitigation>Spectre</SpectreMitigation>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -106,7 +113,7 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
     <OutDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/</OutDir>
     <IntDir>$(ProjectDir)/$(Platform)_$(Configuration)_build/intermediate</IntDir>
     <TargetName>EuropasoftServer</TargetName>
@@ -154,6 +161,8 @@
       <AdditionalIncludeDirectories>$(ProjectDir)\Source\NetAgent\HttpServerUtils\;$(ProjectDir)\Source</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
