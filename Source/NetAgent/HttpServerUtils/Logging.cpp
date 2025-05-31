@@ -24,6 +24,11 @@ namespace ESLog
 		return m;
 	}
 
+	std::string colorLogMesage(const char* color, std::string msg)
+	{
+		return (color + msg + ES_LOG_RESET);
+	}
+
 	std::string getLogLevelString(Lvl lvl)
 	{
 		if (lvl == Lvl::ES_DETAIL)
@@ -57,21 +62,21 @@ namespace ESLog
 		}
 	}
 
-	void logToOutput(std::string message)
+	void logToOutput(std::string message, const char* color)
 	{
 		if (getGlobalLogSettings().enableLogToOutput and not getGlobalLogSettings().disableAllLogging)
-			std::cout << message;
+			std::cout << colorLogMesage(color, message);
 	}
 
-	void logToFileAndOutputAsync(std::string message)
+	void logToFileAndOutputAsync(std::string message, const char* color)
 	{
-		std::thread([message]()
+		std::thread([message, color]()
 			{
 				WIN_SET_THREAD_NAME(L"Log async");
 				if (getLogMutex().try_lock())
 				{
 					logToFile(message);
-					logToOutput(message);
+					logToOutput(message, color);
 					getLogMutex().unlock();
 				}
 			}).detach();
@@ -79,27 +84,27 @@ namespace ESLog
 
 	void es_detail(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_DETAIL, message);
+		ESLog_LOG_MSG(Lvl::ES_DETAIL, message, ES_LOG_WHITE);
 	}
 
 	void es_info(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_INFO, message);
+		ESLog_LOG_MSG(Lvl::ES_INFO, message, ES_LOG_CYAN);
 	}
 
 	void es_warning(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_WARNING, message);
+		ESLog_LOG_MSG(Lvl::ES_WARNING, message, ES_LOG_YELLOW);
 	}
 
 	void es_error(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_ERROR, message);
+		ESLog_LOG_MSG(Lvl::ES_ERROR, message, ES_LOG_RED);
 	}
 
 	void es_fatal(std::string message)
 	{
-		ESLog_LOG_MSG(Lvl::ES_FATAL, message);
+		ESLog_LOG_MSG(Lvl::ES_FATAL, message, ES_LOG_BRIGHT_RED);
 		assert(0 && message.c_str());
 		throw std::runtime_error(message);
 	}

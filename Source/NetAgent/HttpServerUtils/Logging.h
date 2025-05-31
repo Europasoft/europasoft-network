@@ -35,12 +35,24 @@ namespace ESLog
 
 	std::mutex& getLogMutex();
 
-	#define ESLog_LOG_MSG(level, message) \
+	#define ESLog_LOG_MSG(level, message, color) \
 	if (static_cast<uint32_t>(level) >= static_cast<uint32_t>(getGlobalLogSettings().logLevel))\
 	{\
 		message = formatLogMessage(level, message);\
-		logToFileAndOutputAsync(message);\
+		logToFileAndOutputAsync(message, color);\
 	}
+
+	constexpr auto ES_LOG_RED = "\033[31m";
+	constexpr auto ES_LOG_BRIGHT_RED = "\033[91m";
+	constexpr auto ES_LOG_GREEN = "\033[32m";
+	constexpr auto ES_LOG_YELLOW = "\033[33m";
+	constexpr auto ES_LOG_BLUE = "\033[34m";
+	constexpr auto ES_LOG_RESET = "\033[0m";
+	constexpr auto ES_LOG_MAGENTA = "\033[35m";
+	constexpr auto ES_LOG_CYAN = "\033[36m";
+	constexpr auto ES_LOG_WHITE = "\033[37m";
+
+	std::string colorLogMesage(const char* color, std::string msg);
 
 	std::string getLogLevelString(Lvl lvl);
 
@@ -48,9 +60,9 @@ namespace ESLog
 
 	void logToFile(std::string message);
 
-	void logToOutput(std::string message);
+	void logToOutput(std::string message, const char* color);
 
-	void logToFileAndOutputAsync(std::string message);
+	void logToFileAndOutputAsync(std::string message, const char* color);
 
 	void es_detail(std::string message);
 
