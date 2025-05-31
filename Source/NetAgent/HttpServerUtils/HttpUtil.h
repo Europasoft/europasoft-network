@@ -1,6 +1,7 @@
 // Copyright 2025 Simon Liimatainen, Europa Software. All rights reserved.
 #pragma once
 
+#include "NetThread/NetThreadSync.h"
 #include <stdint.h>
 #include <string>
 #include <string_view>
@@ -104,12 +105,15 @@ namespace HTTP
 	{
 	public:
 		void updateFullRefresh(std::string_view webRootPath);
+		void refreshTimed(double intervalSeconds);
 
 		struct PathInfo { std::filesystem::path relative, full; std::string knownExtension; };
 		size_t findFile(const std::filesystem::path& path) const; // paths may be matched without file extension
 		bool getFileAsString(size_t id, std::string& contentOut) const;
 		PathInfo getFileInfo(size_t id) const;
 		FileFormatInfo fileFormatFromExtension(std::string fileExtension) const;
+		FileFormatInfo fileFormatFromPath(std::string path) const;
+		std::string getFileExtension(std::string path) const;
 		std::string makeContentTypeHeaderField(std::string fileExtension) const;
 	protected:
 		std::filesystem::path webroot{};
@@ -118,6 +122,9 @@ namespace HTTP
 		std::vector<FileFormatInfo> fileExtensionContentTypeMappings;
 		void updateContentTypeMappings();
 		
+		std::unique_ptr<Timer> filesystemRefreshTimer = nullptr;
+
+		std::string normalizePath(const std::filesystem::path& original) const;
 	};
 
 	
@@ -138,9 +145,11 @@ namespace HTTP
 		HttpStatusCode statusCode = HttpStatusCode::OK;
 		std::vector<std::string> headerFields{};
 		std::string payload{};
+		bool handled = true;
 		void addHeaderField(std::string_view name, std::string_view value);
 		std::string finalizeToString() const;
 		static HttpResponse errorResponse(HttpStatusCode code);
+		static HttpResponse unhandledResponse();
 	};
 
 	struct HttpTaskResult
@@ -154,6 +163,22 @@ namespace HTTP
 	{
 		HttpMethodType method = HttpMethodType::UNRECOGNIZED_M;
 		std::function<HttpResponse(const HttpRequest&)> execute{};
+	};
+
+	enum class RequestCompleteness { PARTIAL, FULL, BAD };
+	class InputHandler
+	{
+	public:
+		static HttpRequest parseHttpRequestSafe(const std::string& request, HttpStatusCode& parserStatusOut);
+		static RequestCompleteness getHttpRequestCompleteness(const std::string& request);
+	protected:
+		static HttpRequest parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut);
+	};
+
+	struct HttpServerSettings
+	{
+		// how long it takes for the file tree to be updated, affects how fast added or renamed files are registered
+		double filesystemRefreshIntervalSec = 30.0;
 	};
 
 }

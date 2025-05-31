@@ -11,12 +11,12 @@
 
 namespace HTTP
 {
+	constexpr auto ES_ENABLE_HTTPSRV_THREADING = false;
 
 	HttpServer::HttpServer(HttpServer::HttpMode httpMode, ServerMode serverMode)
-		: Agent{ Agent::Mode::Server }, httpMode{ httpMode }, serverMode{ serverMode }
+		: Agent{ (httpMode == HttpServer::HttpMode::HTTP) ? Agent::Mode::Server : Agent::Mode::ServerEncrypted }, 
+		httpMode{ httpMode }, serverMode{ serverMode }
 	{
-		// TODO: HTTPS (TLS) support
-		ESLog::es_assertRuntime(httpMode != HttpMode::HTTPS, "SSL/TLS is not supported");
 	}
 
 	void HttpServer::bindRequestHandler(HttpMethodType httpMethod, std::function<HttpResponse(const HttpRequest&)> handlerFunction)
@@ -33,6 +33,12 @@ namespace HTTP
 		bindRequestHandler(HttpMethodType::ANY_M, f);
 	}
 
+	void HttpServer::applySettings(const NetAgentSettings& settingsNew, const HttpServerSettings& httpSettingsNew)
+	{
+		Agent::applySettings(settingsNew);
+		httpSettings = std::make_shared<HttpServerSettings>(httpSettingsNew);
+	}
+
 	void HttpServer::start(std::string_view address, std::string_view port)
 	{
 #ifdef _WIN32
@@ -47,13 +53,18 @@ namespace HTTP
 	void HttpServer::handleRequests()
 	{
 		Agent::updateConnections();
+		httpFilesystem.refreshTimed(httpSettings->filesystemRefreshIntervalSec);
 
 		for (Connection& conn : Agent::getAllConnections())
 		{
-			if (conn.getIncomingDataSize() > 0)
+			if (conn.getIncomingDataSize() >= 26)
 			{
-				ESLog::es_detail(ESLog::FormatStr() << "Incoming " << conn.getIncomingDataSize() << " bytes");
-				futures.push_back(std::async(std::launch::async, &HttpServer::handleHttpRequest, std::ref(conn), std::ref(handlers)));
+				//ESLog::es_detail(ESLog::FormatStr() << "Incoming " << conn.getIncomingDataSize() << " bytes");
+				if (ES_ENABLE_HTTPSRV_THREADING)
+					futures.push_back(std::async(std::launch::async, &HttpServer::handleHttpRequest, std::ref(conn), std::ref(handlers)));
+				else
+					HttpServer::handleHttpRequest(conn, handlers);
+
 			}
 		}
 
@@ -83,12 +94,19 @@ namespace HTTP
 		requestCompletionTimer.start();
 		
 		std::string requestString;
-		connection.receive(requestString);
-		if (requestString.empty())
+		RequestCompleteness completeness = RequestCompleteness::PARTIAL;
+		// parse request in pieces, and impose a timeout to mitigate "low and slow" clients
+		while (completeness == RequestCompleteness::PARTIAL and (requestCompletionTimer.getElapsed() < 3.f))
+		{
+			connection.receive(requestString);
+			completeness = InputHandler::getHttpRequestCompleteness(requestString);
+		}
+
+		if (requestString.empty() or completeness == RequestCompleteness::BAD)
 			return HttpTaskResult{ .statusCode = HttpStatusCode::BAD_REQUEST, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 
 		HttpStatusCode parserStatus = HttpStatusCode::SRV_ERROR;
-		HttpRequest request = parseHttpRequest(requestString, parserStatus);
+		HttpRequest request = InputHandler::parseHttpRequestSafe(requestString, parserStatus);
 
 		// return early for issues found during parsing
 		if (httpStatusCodeIsError(parserStatus) or request.method == HttpMethodType::UNRECOGNIZED_M)
@@ -107,8 +125,13 @@ namespace HTTP
 			if (handler.method == request.method or handler.method == HttpMethodType::ANY_M)
 			{
 				const HttpResponse response = handler.execute(request);
+				if (not response.handled)
+					continue; // handler refused to process the request, try other handlers
+
 				std::string responseString = response.finalizeToString();
+
 				connection.send(responseString);
+
 				return HttpTaskResult{ .statusCode = response.statusCode, .request = request, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 			}
 		}
@@ -116,54 +139,7 @@ namespace HTTP
 		return HttpTaskResult{ .statusCode = HttpStatusCode::METHOD_NOT_ALLLOWED, .request = {}, .timeTakenToCompleteMs = requestCompletionTimer.getElapsedMs() };
 	}
 
-	HttpRequest HttpServer::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)
-	{
-		auto methodEnd = request.find(" ");
-		auto urlEnd = request.find(" ", methodEnd + 1);
-
-		// catch HTTP methods that are longer than the longest supported
-		if (methodEnd > 7)
-		{
-			parserStatusOut = HttpStatusCode::METHOD_NOT_ALLLOWED;
-			return HttpRequest{};
-		}
-		// catch URIs that are unacceptably long
-		if (urlEnd - methodEnd > 9000)
-		{
-			parserStatusOut = HttpStatusCode::URI_TOO_LONG;
-			return HttpRequest{};
-		}
-
-		HttpRequest req;
-		req.method = httpMethodFromString(request.substr(0, methodEnd));
-		req.url = request.substr(methodEnd, urlEnd - methodEnd);
-		std::erase(req.url, ' ');
-
-		// TODO: check payload length and request length value in request
-		auto lastFieldEnd = urlEnd;
-		for (uint32_t i = 0; i < 200; i++)
-		{
-			auto fieldStart = request.find("\r\n", lastFieldEnd);
-			auto fieldEnd = request.find("\r\n", fieldStart + 1);
-			auto field = request.substr(fieldStart, fieldEnd - fieldStart);
-			if (not (field == "\r\n" or field.empty()))
-			{
-				replaceSubstring(field, "\r", "");
-				replaceSubstring(field, "\n", "");
-				req.headerFields.push_back(field);
-				lastFieldEnd = fieldEnd;
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		parserStatusOut = HttpStatusCode::OK;
-		return req;
-		
-	}
-
+	
 	HttpResponse HttpServer::filesystemRequestHandler(const HttpRequest& request) const
 	{
 		if (request.method != HttpMethodType::GET_M)
@@ -171,12 +147,13 @@ namespace HTTP
 
 		// in dynamic mode, requests might be to rehydrate a page, or just part of a page instead of a whole file
 		ESLog::es_detail(ESLog::FormatStr() << "Getting file info for " << request.url);
-		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromExtension(request.url);
+		FileFormatInfo requestFileInfo = httpFilesystem.fileFormatFromPath(request.url);
 
 		if (serverMode == ServerMode::Dynamic and 
 			(requestFileInfo.extensionEnum == CommonFileExt::NONE or
 			requestFileInfo.extensionEnum == CommonFileExt::HTML))
 		{
+			ESLog::es_detail(ESLog::FormatStr() << "Request for " << request.url << " passed to dynamic request handler");
 			return dynamicRequestHandler(request);
 		}
 

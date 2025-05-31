@@ -7,8 +7,11 @@
 #include <fstream>
 #include <algorithm>
 
+
 namespace HTTP
 {
+	constexpr size_t ES_URI_LIMIT = 9000;
+
 	std::array<std::pair<HttpStatusCode, std::string>, 24> StringEnumHelpers::httpStatusCodeMappings =
 		{
 			std::pair<HttpStatusCode, std::string>{ HttpStatusCode::OK,							"OK" },
@@ -115,6 +118,13 @@ namespace HTTP
 		};
 	}
 
+	HttpResponse HttpResponse::unhandledResponse()
+	{
+		HttpResponse response{};
+		response.handled = false;
+		return response;
+	}
+
 	std::string makeResponseVersionString()
 	{
 		return "HTTP/1.1";
@@ -140,27 +150,40 @@ namespace HTTP
 
 	void HttpFilesystem::updateFullRefresh(std::string_view webRootPath)
 	{
-		ESLog::es_info("Refreshing filesystem paths under WebRoot");
-		webroot = webRootPath;
+		if (not webRootPath.empty())
+			webroot = webRootPath;
+		
 		updateContentTypeMappings();
-		for (const auto& p : std::filesystem::recursive_directory_iterator(webRootPath))
+		for (const auto& p : std::filesystem::recursive_directory_iterator(webroot))
 		{
 			if (not std::filesystem::is_directory(p))
 			{
 				const auto full = std::filesystem::weakly_canonical(webroot / p.path());
-				const auto rel = std::filesystem::relative(full, webRootPath);
+				const auto rel = std::filesystem::relative(full, webroot);
 				if (full.is_relative() or (not full.is_absolute()) or rel.is_absolute() or (not rel.is_relative()))
 					continue;
 				allowedFilepaths.push_back(PathInfo
 					{
-						.relative = std::filesystem::relative(p.path(), webRootPath),
+						.relative = std::filesystem::relative(p.path(), webroot),
 						.full = std::filesystem::weakly_canonical(webroot / p.path()),
 						.knownExtension = p.path().extension().string()
 					});
-				ESLog::es_detail(ESLog::FormatStr() << allowedFilepaths.back().relative << " (" << makeContentTypeHeaderField(allowedFilepaths.back().knownExtension) << ")");
+				if (not filesystemRefreshTimer)
+					ESLog::es_detail(ESLog::FormatStr() << allowedFilepaths.back().relative << " (" << makeContentTypeHeaderField(allowedFilepaths.back().knownExtension) << ")");
 			}
 		}
-		ESLog::es_info("Completed gathering filesystem paths");
+		ESLog::es_info("Refreshed filesystem paths under WebRoot");
+
+		if (filesystemRefreshTimer)
+			filesystemRefreshTimer->start();
+		else
+			filesystemRefreshTimer = std::make_unique<Timer>();
+	}
+
+	void HttpFilesystem::refreshTimed(double intervalSeconds)
+	{
+		if (filesystemRefreshTimer->getElapsed() >= intervalSeconds)
+			updateFullRefresh("");
 	}
 
 	void HttpFilesystem::updateContentTypeMappings()
@@ -180,14 +203,28 @@ namespace HTTP
 		};
 	}
 
+	std::string HttpFilesystem::normalizePath(const std::filesystem::path& original) const
+	{
+		std::string normalized = original.string();
+		std::replace(normalized.begin(), normalized.end(), '\\', '/');
+		if (normalized.length() > 0 and normalized.at(0) != '/')
+			normalized = "/" + normalized;
+		return normalized;
+	}
+
 	size_t HttpFilesystem::findFile(const std::filesystem::path& path) const
 	{
 		for (size_t i = 0; i < allowedFilepaths.size(); i++)
 		{
-			auto relativeNormalized = allowedFilepaths[i].relative.string();
-			std::replace(relativeNormalized.begin(), relativeNormalized.end(), '\\', '/');
-			relativeNormalized = "/" + relativeNormalized;
-			if (allowedFilepaths[i].relative == path or relativeNormalized == path.string())
+			const auto& relative = allowedFilepaths[i].relative;
+			const std::string relativeNormalized = normalizePath(relative);
+			if (relative == path or relativeNormalized == path.string())
+				return i + 1;
+			// if the url is a directory "x" which contains an "index.html" or "x.html", return that file
+			const std::string lastDirName = relative.parent_path().filename().string();
+			const std::string speculativeIndexPath = normalizePath(path / "index.html");
+			const std::string speculativeDirNamePath = normalizePath(path / (lastDirName + ".html"));
+ 			if (relativeNormalized == speculativeIndexPath or relativeNormalized == speculativeDirNamePath)
 				return i + 1;
 		}
 		return 0;
@@ -247,10 +284,25 @@ namespace HTTP
 		auto& mappings = HttpFilesystem::fileExtensionContentTypeMappings;
 		auto iterator = std::find_if(mappings.begin(), mappings.end(),
 								[&](const auto& b) { return (fileExtension == ("." + b.extensionString)); });
+
 		if (iterator != mappings.end())
 			return *iterator;
 		else
 			return FileFormatInfo{ CommonFileExt::NONE };
+	}
+
+	FileFormatInfo HttpFilesystem::fileFormatFromPath(std::string path) const
+	{
+		return fileFormatFromExtension(getFileExtension(path));
+	}
+
+	std::string HttpFilesystem::getFileExtension(std::string path) const
+	{
+		size_t dotPos = path.find_last_of('.');
+		if (dotPos != std::string::npos)
+			return path.substr(dotPos + 1);
+		else
+			return std::string();
 	}
 
 	std::string HttpFilesystem::makeContentTypeHeaderField(std::string fileExtension) const
@@ -272,5 +324,109 @@ namespace HTTP
 			index = string.find(from, index + to.length());
 		}
 	}
+
+	HttpRequest InputHandler::parseHttpRequestSafe(const std::string& request, HttpStatusCode& parserStatusOut)
+	{
+		try
+		{
+			return InputHandler::parseHttpRequest(request, parserStatusOut);
+		}
+		catch (...)
+		{
+			parserStatusOut = HttpStatusCode::BAD_REQUEST;
+			return HttpRequest{};
+		}
+	}
+
+	RequestCompleteness InputHandler::getHttpRequestCompleteness(const std::string& request)
+	{
+		auto methodEnd = request.find(" ");
+		if (methodEnd == std::string::npos)
+		{
+			// end of method not found
+			if (request.length() >= 8)
+				return RequestCompleteness::BAD; // request not valid, must have whitespace within the first 8 bytes
+			else
+				return RequestCompleteness::PARTIAL;
+		}
+		const auto method = httpMethodFromString(request.substr(0, methodEnd));
+		if (method == HttpMethodType::UNRECOGNIZED_M)
+			return RequestCompleteness::BAD; // request not valid, unrecognized method
+
+		// method is complete
+
+		auto urlEnd = request.find(" ", methodEnd + 1);
+		if (urlEnd == std::string::npos)
+		{
+			// end of url not found
+			if ((request.length() - methodEnd) > (ES_URI_LIMIT + 9))
+				return RequestCompleteness::BAD; // request not valid, url is too long
+			else
+				return RequestCompleteness::PARTIAL;
+		}
+
+		// url is complete
+
+		const bool completeHeader = (request.find("\r\n") != std::string::npos);
+		if (not completeHeader)
+		{
+			// end of header not found
+			if ((request.length() - urlEnd) >= 14)
+				return RequestCompleteness::BAD; // request not valid, no end of header
+			else
+				return RequestCompleteness::PARTIAL;
+		}
+
+		return RequestCompleteness::FULL;
+	}
+
+	HttpRequest InputHandler::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)
+	{
+		auto methodEnd = request.find(" ");
+		auto urlEnd = request.find(" ", methodEnd + 1);
+
+		// catch HTTP methods that are longer than the longest supported
+		if (methodEnd > 7)
+		{
+			parserStatusOut = HttpStatusCode::METHOD_NOT_ALLLOWED;
+			return HttpRequest{};
+		}
+		// catch URIs that are unacceptably long
+		if (urlEnd - methodEnd > 9000)
+		{
+			parserStatusOut = HttpStatusCode::URI_TOO_LONG;
+			return HttpRequest{};
+		}
+
+		HttpRequest req;
+		req.method = httpMethodFromString(request.substr(0, methodEnd));
+		req.url = request.substr(methodEnd, urlEnd - methodEnd);
+		std::erase(req.url, ' ');
+
+		// TODO: check payload length and request length value in request
+		auto lastFieldEnd = urlEnd;
+		for (uint32_t i = 0; i < 200; i++)
+		{
+			auto fieldStart = request.find("\r\n", lastFieldEnd);
+			auto fieldEnd = request.find("\r\n", fieldStart + 1);
+			auto field = request.substr(fieldStart, fieldEnd - fieldStart);
+			if (not (field == "\r\n" or field.empty()))
+			{
+				replaceSubstring(field, "\r", "");
+				replaceSubstring(field, "\n", "");
+				req.headerFields.push_back(field);
+				lastFieldEnd = fieldEnd;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		parserStatusOut = HttpStatusCode::OK;
+		return req;
+
+	}
+
 
 }

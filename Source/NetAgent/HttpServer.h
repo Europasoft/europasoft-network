@@ -13,6 +13,8 @@
 
 namespace HTTP
 {
+	class HttpServerSettings;
+
 	// HTTP server agent
 	class HttpServer : public Agent
 	{
@@ -23,6 +25,7 @@ namespace HTTP
 
 		void bindRequestHandler(HttpMethodType httpMethod, std::function<HttpResponse(const HttpRequest&)> handlerFunction);
 		void bindRequestHandler(std::string_view filesystemWebrootPath);
+		void applySettings(const NetAgentSettings& settingsNew, const HttpServerSettings& httpSettingsNew);
 		void start(std::string_view address, std::string_view port = "");
 		void handleRequests();
 
@@ -32,8 +35,9 @@ namespace HTTP
 		std::vector<HttpHandlerBinding> handlers;
 		std::list<std::future<HttpTaskResult>> futures;
 		HttpFilesystem httpFilesystem{};
+		std::shared_ptr<HttpServerSettings> httpSettings = nullptr;
 		static HttpTaskResult handleHttpRequest(Connection& connection, std::vector<HttpHandlerBinding>& methodHandlers);
-		static HttpRequest parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut);
+		
 		HttpResponse filesystemRequestHandler(const HttpRequest& request) const;
 		HttpResponse dynamicRequestHandler(const HttpRequest& request) const;
 	};
