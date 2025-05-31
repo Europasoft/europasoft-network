@@ -27,7 +27,11 @@ namespace HTTP
 	void HttpServer::bindRequestHandler(std::string_view filesystemWebrootPath)
 	{
 		using namespace std::placeholders;
-		ESLog::es_assertRuntime(std::filesystem::exists(filesystemWebrootPath), "The WebRoot path must point to a valid directory");
+		if (not std::filesystem::exists(filesystemWebrootPath))
+		{
+			ESLog::es_error("The WebRoot path must point to a valid directory");
+			return;
+		}
 		httpFilesystem.updateFullRefresh(filesystemWebrootPath);
 		std::function<HttpResponse(const HttpRequest&)> f = std::bind(&HttpServer::filesystemRequestHandler, this, std::placeholders::_1);
 		bindRequestHandler(HttpMethodType::ANY_M, f);
@@ -47,6 +51,8 @@ namespace HTTP
 		ESLog::es_detail(ESLog::FormatStr() << "Server starting. Executable path: " << std::filesystem::canonical("/proc/self/exe"));
 #endif
 		const auto listenPort = port.empty() ? ((httpMode == HttpMode::HTTPS) ? "443" : "80") : port;
+		if (not httpSettings.get())
+			httpSettings = std::make_shared<HttpServerSettings>(HttpServerSettings());
 		Agent::listen(listenPort, address);
 	}
 

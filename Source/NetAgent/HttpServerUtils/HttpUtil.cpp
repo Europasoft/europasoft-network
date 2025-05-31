@@ -152,6 +152,8 @@ namespace HTTP
 	{
 		if (not webRootPath.empty())
 			webroot = webRootPath;
+		if (webroot.empty())
+			return;
 		
 		updateContentTypeMappings();
 		for (const auto& p : std::filesystem::recursive_directory_iterator(webroot))
@@ -182,6 +184,8 @@ namespace HTTP
 
 	void HttpFilesystem::refreshTimed(double intervalSeconds)
 	{
+		if (webroot.empty())
+			return;
 		if (filesystemRefreshTimer->getElapsed() >= intervalSeconds)
 			updateFullRefresh("");
 	}

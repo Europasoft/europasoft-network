@@ -32,6 +32,7 @@
     <ClCompile Include="Source\Sockets\Sockets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Examples\HttpServerExample.h" />
     <ClInclude Include="Source\Examples\SimpleHttpServerExample.h" />
     <ClInclude Include="Source\Examples\TcpChatExample.h" />
     <ClInclude Include="Source\NetAgent\Agent.h" />
