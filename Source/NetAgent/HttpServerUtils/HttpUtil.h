@@ -99,6 +99,7 @@ namespace HTTP
 	std::string fileToString(const std::filesystem::path& filepath);
 
 	void replaceSubstring(std::string& string, const std::string& from, const std::string& to);
+	void removeWhitespaceSubstring(std::string_view& view);
 
 	// NOTE: this could be accelerated with a tree structure
 	class HttpFilesystem

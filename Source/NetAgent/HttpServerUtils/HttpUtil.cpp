@@ -329,6 +329,17 @@ namespace HTTP
 		}
 	}
 
+	void removeWhitespaceSubstring(std::string_view& view)
+	{
+		size_t start = 0;
+		while (start < view.length() and (view[start] == ' ' or view[start] == '\r' or view[start] == '\n'))
+			start++;
+		size_t end = view.length();
+		while (end > start and (view[end - 1] == ' ' || view[end - 1] == '\r' || view[end - 1] == '\n'))
+			end--;
+		view = view.substr(start, end - start);
+	}
+
 	HttpRequest InputHandler::parseHttpRequestSafe(const std::string& request, HttpStatusCode& parserStatusOut)
 	{
 		try
@@ -386,6 +397,7 @@ namespace HTTP
 
 	HttpRequest InputHandler::parseHttpRequest(const std::string& request, HttpStatusCode& parserStatusOut)
 	{
+		std::string_view requestView(request); // better performance than plain string
 		auto methodEnd = request.find(" ");
 		auto urlEnd = request.find(" ", methodEnd + 1);
 
@@ -403,6 +415,7 @@ namespace HTTP
 		}
 
 		HttpRequest req;
+		req.headerFields.reserve(100);
 		req.method = httpMethodFromString(request.substr(0, methodEnd));
 		req.url = request.substr(methodEnd, urlEnd - methodEnd);
 		std::erase(req.url, ' ');
@@ -413,12 +426,11 @@ namespace HTTP
 		{
 			auto fieldStart = request.find("\r\n", lastFieldEnd);
 			auto fieldEnd = request.find("\r\n", fieldStart + 1);
-			auto field = request.substr(fieldStart, fieldEnd - fieldStart);
+			std::string_view field = requestView.substr(fieldStart, fieldEnd - fieldStart);
 			if (not (field == "\r\n" or field.empty()))
 			{
-				replaceSubstring(field, "\r", "");
-				replaceSubstring(field, "\n", "");
-				req.headerFields.push_back(field);
+				removeWhitespaceSubstring(field);
+				req.headerFields.push_back(std::string(field));
 				lastFieldEnd = fieldEnd;
 			}
 			else
